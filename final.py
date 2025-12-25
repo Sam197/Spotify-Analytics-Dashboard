@@ -162,9 +162,10 @@ if st.session_state.page == "Home":
 
     st.write(f"Peak {selected_label}: {peak_t} with {peak_t_count} listnes")
     
-    # Make it look a bit cleaner
 
     st.divider()
+    st.title("Track Analytics")
+    st.write(f"Encompassing date range from {start_date.date()} to {end_date.date()}")
 
     t10simple, t10noskip, t10mins, t10meanmin = analyticsFuncs.top_songs(filtered_df)
     st.write("Top 10 songs by number of plays")
@@ -178,6 +179,7 @@ if st.session_state.page == "Home":
 
     st.divider()
     st.title("Artists")
+    st.write(f"Encompassing date range from {start_date.date()} to {end_date.date()}")
 
     ta10simple, ta10noskip, ta10mins, ta10unique, ta10lskippercen = analyticsFuncs.top_artists(filtered_df)
     st.write("Top 10 artists by number of plays")
