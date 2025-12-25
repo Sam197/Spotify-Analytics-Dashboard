@@ -42,7 +42,7 @@ if st.session_state.page == 'Upload' or st.session_state.data is None:
             
             if not st.session_state.has_inital_data:
                 st.write("Loading Landing Page!")
-            st.dataframe(st.session_state.data)
+            st.dataframe(st.session_state.data, hide_index=True)
             if not st.session_state.has_inital_data:
                 st.session_state.has_inital_data = True
                 st.rerun()
@@ -196,7 +196,7 @@ if st.session_state.page == "Home":
 elif st.session_state.page == 'Track':
     df = st.session_state.data
     st.title("Looking for a Specific Track?")
-    search_keyword = st.text_input("Start Searching for a Song")
+    search_keyword = st.text_input("Start Searching for a Song", placeholder="Enter a Song Title")
     artist, album = "", ""
     col1, col2, col3 = st.columns(3)
     song_history = None
@@ -207,9 +207,9 @@ elif st.session_state.page == 'Track':
     with col3:
         albumEntry = st.checkbox("Refine With Album?")
     if artistEntry:
-        artist = st.text_input("Artist Name")
+        artist = st.text_input("Artist Name", placeholder="Enter Artist Name")
     if albumEntry:
-        album = st.text_input("Album Name")
+        album = st.text_input("Album Name", placeholder="Enter Album Name")
     if search_keyword != "":
         song_history = analyticsFuncs.get_song_stats(df, search_keyword, exact=exact, artist=artist, album=album)
         if song_history is not None:
@@ -221,7 +221,7 @@ elif st.session_state.page == 'Track':
 elif st.session_state.page == 'Artist':
     df = st.session_state.data
     st.title("Looking for a Specific Artist?")
-    search_keyword = st.text_input("Start Searching for an Artist")
+    search_keyword = st.text_input("Start Searching for an Artist", placeholder="Enter an Artist's Name")
     artist_hist = None
     if search_keyword != "":
         artist_hist = analyticsFuncs.artist_stats(df, search_keyword, False)
