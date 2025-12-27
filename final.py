@@ -14,6 +14,7 @@ if 'page' not in st.session_state:
 if st.session_state.data is not None:
     page = st.sidebar.radio("Navigate", ['Upload', 'Home', 'Track', 'Artist', 'Album'])
     st.session_state.page = page
+    st.sidebar.markdown("Checkout the [GitHub Repository](https://github.com/Sam197/Spotify-Analytics-Dashboard)!")
 
 if st.session_state.page == 'Upload' or st.session_state.data is None:
     st.title("📊 Music Analytics Dashboard")
@@ -136,7 +137,7 @@ if st.session_state.page == "Home":
 
     fig.update_layout(hovermode="x unified")
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
     peak_mins_t = resampled_df['minutes'].idxmax()
     peak_mins_freq = resampled_df['minutes'].max()
@@ -153,7 +154,7 @@ if st.session_state.page == "Home":
     )
     fig.update_layout(hovermode="x unified")
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
     
     track_df = filtered_df.copy(deep=True)
     track_df['time_frame'] = track_df['ts'].dt.to_period(freq_alias)
@@ -223,9 +224,10 @@ elif st.session_state.page == 'Artist':
     df = st.session_state.data
     st.title("Looking for a Specific Artist?")
     search_keyword = st.text_input("Start Searching for an Artist", placeholder="Enter an Artist's Name")
+    exact = st.checkbox("Exact Match?")
     artist_hist = None
     if search_keyword != "":
-        artist_hist = analyticsFuncs.get_artist_hist(df, search_keyword, False)
+        artist_hist = analyticsFuncs.get_artist_hist(df, search_keyword, exact=exact)
         if artist_hist is not None:
             artist_sum_stats = analyticsFuncs.artist_sum_stats(artist_hist)
             markdown.summary_artist_markdown(artist_sum_stats)

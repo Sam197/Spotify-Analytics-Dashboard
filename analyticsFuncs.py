@@ -6,7 +6,7 @@ TOP_SONG_HEAD = 5
 DAYS_PER_MONTH = 30.44
 
 def containsOne(df):
-    
+
     unique_uris = df['spotify_track_uri'].nunique()
 
     if unique_uris > 2:
@@ -21,7 +21,7 @@ def containsOne(df):
             })
         )
         st.write(f"Found Multiple ({unique_uris}) Songs - please refine your search")
-        st.dataframe(found_versions.sort_values('Listens', ascending=False), use_container_width=True, hide_index=True)
+        st.dataframe(found_versions.sort_values('Listens', ascending=False), width='stretch', hide_index=True)
         return False
     
     return True
@@ -189,7 +189,7 @@ def get_artist_hist(df, artist, exact = False):
             })
         )
         st.write(f"Found Multiple {unique_artists} Artists - please refine your search")
-        st.dataframe(found_artists.sort_values('Listens', ascending=False), use_container_width=True, hide_index=True)
+        st.dataframe(found_artists.sort_values('Listens', ascending=False), width='stretch', hide_index=True)
         return None
     elif artist_hist.empty:
         st.write(f"Could not find an artist containing '{artist}'")
