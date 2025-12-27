@@ -2,30 +2,26 @@ import streamlit as st
 import pandas as pd
 
 MS_MIN_CONVERSION = 60000
+TOP_SONG_HEAD = 5
+DAYS_PER_MONTH = 30.44
 
 def containsOne(df):
+    
     unique_uris = df['spotify_track_uri'].nunique()
 
     if unique_uris > 2:
-        #print(f"WARNING: Found {unique_uris-1} unique versions of this song.")
-        #print("Please isolate one by filtering by Artist, Album or by using exact name")
-        
-        # Optional: Print the different artists/albums found to help the user
         found_versions = (
             df.groupby(['master_metadata_track_name', 'master_metadata_album_artist_name', 'master_metadata_album_album_name'])
             .size()
-            .reset_index(name='Listens') # This names the count column immediately
+            .reset_index(name='Listens')
             .rename(columns={
                 "master_metadata_track_name": "Track Name",
                 "master_metadata_album_artist_name": "Artist",
                 "master_metadata_album_album_name": "Album"
             })
         )
-        st.write("Found Multiple Songs - please refine your search")
-        st.dataframe(found_versions.sort_values('Listens', ascending=False), use_container_width=True)
-        #print("\nVersions found:")
-        #print(found_versions)
-        #print(f"{'='*54}")
+        st.write(f"Found Multiple ({unique_uris}) Songs - please refine your search")
+        st.dataframe(found_versions.sort_values('Listens', ascending=False), use_container_width=True, hide_index=True)
         return False
     
     return True
@@ -50,49 +46,26 @@ def song_sum_stats(df):
     timespan = (last_listen - first_listen).days
     
     # Playback Stats
-    total_plays = len(df)
+    tot_plays = len(df)
+
     # Summing booleans treats True as 1 and False as 0
-    total_skips = df['skipped'].sum() 
-    clean_plays = total_plays - total_skips
-    listen_rate = (clean_plays / total_plays) * 100 if total_plays > 0 else 0
+    tot_skips = df['skipped'].sum() 
+    full_plays = tot_plays - tot_skips
+    listen_rate = (full_plays / tot_plays) * 100 if tot_plays > 0 else 0
     
     # Cool New Stats
-    total_hours = df['ms_played'].sum() / (1000 * 60 * 60)
-    avg_plays_per_month = total_plays / (max(timespan, 1) / 30.44)
+    tot_hours = df['ms_played'].sum() / MS_MIN_CONVERSION
+    avg_plays_per_month = tot_plays / (max(timespan, 1) / DAYS_PER_MONTH)
     
     # "Binge Factor" - What's the most you played this in a single day?
     most_plays_in_day = df.groupby(df['ts'].dt.date).size().max()
 
-    # Output
-    st.markdown(f"""
-    ### 🎵 Track Report: {name}
-    **Artist:** {artist}  
-    **Album:** {album}
+    summary_stats = {'name':name, 'artist':artist, 'album':album,
+                     'first_listen':first_listen, 'last_listen':last_listen, 'timespan':timespan,
+                     'tot_plays':tot_plays, 'tot_skips':tot_skips, 'full_plays':full_plays, 'listen_rate':listen_rate,
+                     'tot_hours':tot_hours, 'avg_plays_per_month':avg_plays_per_month, 'most_plays_in_day': most_plays_in_day}
 
-    ---
-
-    #### 📅 Listening Timeline
-    * **First Heard:** `{first_listen.strftime('%Y-%m-%d')}`
-    * **Last Heard:** `{last_listen.strftime('%Y-%m-%d')}` ({timespan} days apart)
-
-    ---
-
-    #### 📊 Play Statistics
-    | Metric | Value |
-    | :--- | :--- |
-    | **Total Plays** | {total_plays} |
-    | **Full Listens** | {clean_plays} |
-    | **Skips** | {total_skips} ({100 - listen_rate:.1f}% skip rate) |
-    | **Total Time** | {total_hours:.2f} hours |
-
-    ---
-
-    #### ⚡ Engagement
-    * **Binge Factor:** {most_plays_in_day} plays in a single day
-    * **Monthly Velocity:** {avg_plays_per_month:.2f} plays/month
-
-    ---
-    """)
+    return summary_stats
 
 def get_song(df, song_name, exact=False, artist=None, album=None):
     mask = pd.Series([True] * len(df), index=df.index)
@@ -139,13 +112,13 @@ def firstLastPlay(df):
     df = df.sort_values('ts')
     cols = ['ts', 'master_metadata_track_name', 'master_metadata_album_artist_name', 'master_metadata_album_album_name']
     validPlays = df.dropna(subset=cols)
-    #print("#####################")
-    #print(validPlays.head())
+
     if not validPlays.empty:
         firstPlay = tuple(validPlays.iloc[0][cols])
         lastPlay = tuple(validPlays.iloc[-1][cols])
     else:
         firstPlay = lastPlay = None
+
     #print(firstPlay[0], type(firstPlay[0]))
     tspan = (lastPlay[0] - firstPlay[0]).days
     return firstPlay, lastPlay, tspan
@@ -164,16 +137,13 @@ def artist_sum_stats(artist_df):
     artist_df = artist_df.sort_values('ts')
     
     # 3. Core Stats
-    total_plays = len(artist_df)
-    total_hours = artist_df['ms_played'].sum() / (1000 * 60 * 60)
+    tot_plays = len(artist_df)
+    tot_hours = artist_df['ms_played'].sum() / (1000 * 60 * 60)
     unique_songs = artist_df['master_metadata_track_name'].nunique()
     
     # 4. First and Last Listen (and the specific songs)
     first_row = artist_df.iloc[0]
     last_row = artist_df.iloc[-1]
-    
-    # 5. Top Songs (Most Played)
-    top_songs = artist_df['master_metadata_track_name'].value_counts().head(3)
     
     # 6. Your "Peak Era" (The month you listened to them the most)
     artist_df['month_year'] = artist_df['ts'].dt.to_period('M')
@@ -184,43 +154,14 @@ def artist_sum_stats(artist_df):
     years_active = artist_df['ts'].dt.year.nunique()
     # 1. First, build the Top Tracks string
     actual_name = artist_df['master_metadata_album_artist_name'].iloc[0]
-    top_songs = pd.DataFrame(artist_df['master_metadata_track_name'].value_counts().head(5).reset_index())
+    top_songs = pd.DataFrame(artist_df['master_metadata_track_name'].value_counts().head(TOP_SONG_HEAD).reset_index())
     top_songs.columns = ['Song', 'Listens']
-    table_rows = ""
-    for _, row in top_songs.iterrows():
-        table_rows += f"| {row['Song']} | {row['Listens']} |\n"
-    # tsongs = top_songs['master_metadata_track_name'].to_numpy()
-    # tsongslistens = top_songs['count'].to_numpy()
 
-    # 2. Render the Styled Markdown
-    st.markdown(f"""
-    ### 🎤 Artist Profile: {actual_name}
+    summary_stats = {'artist_name':actual_name, 'tot_plays':tot_plays, 'tot_hours':tot_hours, 'unique_songs':unique_songs,
+                     'first_song_row':first_row, 'last_song_row':last_row, 'peak_month':peak_month, 'peak_month_count':peak_month_count,
+                     'years_active':years_active, 'top_songs':top_songs}
 
-    ---
-
-    #### 📊 Career Statistics
-    | Metric | Value |
-    | :--- | :--- |
-    | **Total Time** | {total_hours:.2f} Hours |
-    | **Total Plays** | {total_plays} |
-    | **Unique Songs** | {unique_songs} |
-    | **Loyalty** | Listened to in {years_active} different year(s) |
-
-    ---
-
-    #### 📅 Journey Timeline
-    * **First Listen:** `{first_row['ts'].strftime('%Y-%m-%d')}`  
-    ↳ *Song:* {first_row['master_metadata_track_name']}
-    * **Last Listen:** `{last_row['ts'].strftime('%Y-%m-%d')}`  
-    ↳ *Song:* {last_row['master_metadata_track_name']}
-
-    ---
-
-    #### 🏆 Insights & Top Tracks
-    * **Peak Era:** You listened to this artist most in **{peak_month}** ({peak_month_count} plays).
-    """
-    )
-    st.dataframe(top_songs, hide_index=True)
+    return summary_stats
 
 def get_artist(df, artist, exact):
     
@@ -232,7 +173,7 @@ def get_artist(df, artist, exact):
     #print(artist_history['master_metadata_album_artist_name'])
     return artist_history
 
-def artist_stats(df, artist, exact = False):
+def get_artist_hist(df, artist, exact = False):
 
     artist_hist = get_artist(df, artist, exact)
     #print(artist_hist)
@@ -242,15 +183,18 @@ def artist_stats(df, artist, exact = False):
         found_artists = (
             artist_hist.groupby('master_metadata_album_artist_name')
             .size()
-            .reset_index(name='Listens') # This names the count column immediately
+            .reset_index(name='Listens')
             .rename(columns={
                 "master_metadata_album_artist_name": "Artist",
             })
         )
-        st.write("Found Multiple Artists - please refine your search")
+        st.write(f"Found Multiple {unique_artists} Artists - please refine your search")
         st.dataframe(found_artists.sort_values('Listens', ascending=False), use_container_width=True, hide_index=True)
+        return None
+    elif artist_hist.empty:
+        st.write(f"Could not find an artist containing '{artist}'")
+        return None
     else:
-        artist_sum_stats(artist_hist)
         return artist_hist
 
 
@@ -269,8 +213,8 @@ def dfAnalytics(df):
     ).reset_index()
 
     # 2. Add minutes and filter
-    song_summary['total_minutes'] = song_summary['total_ms'] / 60000
-    song_summary['mean_listen_mins'] = song_summary['mean_listen_ms'] / 60000
+    song_summary['total_minutes'] = song_summary['total_ms'] / MS_MIN_CONVERSION
+    song_summary['mean_listen_mins'] = song_summary['mean_listen_ms'] / MS_MIN_CONVERSION
     song_summary = song_summary.drop(columns=['total_ms', 'mean_listen_ms'])
     return song_summary
 

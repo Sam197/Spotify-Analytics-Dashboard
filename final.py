@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import analyticsFuncs
+import analyticsFuncs, markdown
 import plotly.express as px
 
 st.set_page_config(page_title="Music Analytics", layout="wide")
@@ -213,7 +213,8 @@ elif st.session_state.page == 'Track':
     if search_keyword != "":
         song_history = analyticsFuncs.get_song_stats(df, search_keyword, exact=exact, artist=artist, album=album)
         if song_history is not None:
-            analyticsFuncs.song_sum_stats(song_history)
+            summary_song_data = analyticsFuncs.song_sum_stats(song_history)
+            markdown.summary_song_markdown(summary_song_data)
             resampled_df = song_history.set_index('ts').resample('M').size().reset_index(name='Plays')
             fig = px.line(resampled_df, x='ts', y='Plays',title="Daily Listens Over Time", labels={'ts': 'Date', 'Play Count': 'Number of Plays'})
             st.plotly_chart(fig)
@@ -224,9 +225,13 @@ elif st.session_state.page == 'Artist':
     search_keyword = st.text_input("Start Searching for an Artist", placeholder="Enter an Artist's Name")
     artist_hist = None
     if search_keyword != "":
-        artist_hist = analyticsFuncs.artist_stats(df, search_keyword, False)
-    if artist_hist is not None:
-        see_all_songs = st.checkbox("See all songs?")
+        artist_hist = analyticsFuncs.get_artist_hist(df, search_keyword, False)
+        if artist_hist is not None:
+            artist_sum_stats = analyticsFuncs.artist_sum_stats(artist_hist)
+            markdown.summary_artist_markdown(artist_sum_stats)
+    if artist_hist is not None and artist_sum_stats['unique_songs'] > analyticsFuncs.TOP_SONG_HEAD:
+        see_all_songs = st.checkbox(f"See all songs? ({artist_sum_stats['unique_songs']})")
+        print(artist_hist)
         if see_all_songs:
             artist_hist = artist_hist['master_metadata_track_name'].value_counts().reset_index()
             artist_hist.columns = ['Song', 'Listens']
