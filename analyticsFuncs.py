@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 
 MS_MIN_CONVERSION = 60000
+MS_HOUR_CONVERSION = 3600000
 TOP_SONG_HEAD = 5
 DAYS_PER_MONTH = 30.44
 
@@ -138,7 +139,7 @@ def artist_sum_stats(artist_df):
     
     # 3. Core Stats
     tot_plays = len(artist_df)
-    tot_hours = artist_df['ms_played'].sum() / (1000 * 60 * 60)
+    tot_hours = artist_df['ms_played'].sum() / MS_HOUR_CONVERSION
     unique_songs = artist_df['master_metadata_track_name'].nunique()
     
     # 4. First and Last Listen (and the specific songs)
@@ -188,7 +189,7 @@ def get_artist_hist(df, artist, exact = False):
                 "master_metadata_album_artist_name": "Artist",
             })
         )
-        st.write(f"Found Multiple {unique_artists} Artists - please refine your search")
+        st.write(f"Found Multiple ({unique_artists}) Artists - please refine your search")
         st.dataframe(found_artists.sort_values('Listens', ascending=False), width='stretch', hide_index=True)
         return None
     elif artist_hist.empty:
@@ -196,7 +197,6 @@ def get_artist_hist(df, artist, exact = False):
         return None
     else:
         return artist_hist
-
 
 def dfAnalytics(df):
     song_summary = df.groupby('spotify_track_uri').agg(
@@ -216,20 +216,25 @@ def dfAnalytics(df):
     song_summary['total_minutes'] = song_summary['total_ms'] / MS_MIN_CONVERSION
     song_summary['mean_listen_mins'] = song_summary['mean_listen_ms'] / MS_MIN_CONVERSION
     song_summary = song_summary.drop(columns=['total_ms', 'mean_listen_ms'])
+    song_summary['skip_percentage'] = (1-(song_summary['plays_no_skips']/song_summary['total_plays']))*100
+
     return song_summary
 
-def top_songs(df):
+def top_songs(df, show_uri=True):
     song_sum = dfAnalytics(df)
-    top10simple = song_sum.sort_values('total_plays', ascending=False).head(10)
-    top10noskip = song_sum.sort_values('plays_no_skips', ascending=False).head(10)
-    top10mins = song_sum.sort_values('total_minutes', ascending=False).head(10)
-    top10meanmins = song_sum.sort_values('mean_listen_mins', ascending=False).head(10)
-    return top10simple, top10noskip, top10mins, top10meanmins
+    if not show_uri:
+        song_sum.drop(columns=['spotify_track_uri'], inplace=True)
+    top10simple = song_sum.sort_values('total_plays', ascending=False).head(TOP_SONG_HEAD)
+    top10noskip = song_sum.sort_values('plays_no_skips', ascending=False).head(TOP_SONG_HEAD)
+    top10mins = song_sum.sort_values('total_minutes', ascending=False).head(TOP_SONG_HEAD)
+    top10meanmins = song_sum.sort_values('mean_listen_mins', ascending=False).head(TOP_SONG_HEAD)
+    top10lowestskip = song_sum[song_sum['total_plays']>=20].sort_values('skip_percentage').head(TOP_SONG_HEAD)
+    top10highestskip = song_sum[song_sum['total_plays']>=20].sort_values('skip_percentage', ascending=False).head(TOP_SONG_HEAD)
+
+    return song_sum, top10simple, top10noskip, top10mins, top10meanmins, top10lowestskip, top10highestskip
 
 def artistAnalytics(df):
-    # 1. Group by Artist Name
-    # Note: We group by the name directly since Spotify doesn't always 
-    # provide a unique Artist URI in every export version.
+    # 1. Group by artist and aggregate
     artist_summary = df.groupby('master_metadata_album_artist_name').agg(
         # Diversity stats
         unique_tracks=('master_metadata_track_name', 'nunique'),
@@ -256,15 +261,13 @@ def artistAnalytics(df):
     return artist_summary
 
 def top_artists(df):
+
     artist_sum = artistAnalytics(df)
-    print(artist_sum)
-    # Sorting by different engagement metrics
-    top10_by_plays = artist_sum.sort_values('total_plays', ascending=False).head(10)
-    top10_by_time = artist_sum.sort_values('total_minutes', ascending=False).head(10)
-    top10_by_no_skips = artist_sum.sort_values('plays_no_skips', ascending=False).head(10)
-    print(top10_by_time)
-    # Sorting by diversity (Who has the most unique songs you've listened to?)
-    top10_by_diversity = artist_sum.sort_values('unique_tracks', ascending=False).head(10)
-    top10_lowest_skip = artist_sum[artist_sum['total_plays']>=100].sort_values('skip_percentage').head(10)
+    top10_by_plays = artist_sum.sort_values('total_plays', ascending=False).head(TOP_SONG_HEAD)
+    top10_by_time = artist_sum.sort_values('total_minutes', ascending=False).head(TOP_SONG_HEAD)
+    top10_by_no_skips = artist_sum.sort_values('plays_no_skips', ascending=False).head(TOP_SONG_HEAD)
+    top10_by_diversity = artist_sum.sort_values('unique_tracks', ascending=False).head(TOP_SONG_HEAD)
+    top10_lowest_skip = artist_sum[artist_sum['total_plays']>=100].sort_values('skip_percentage').head(TOP_SONG_HEAD)
+    top10_highest_skip = artist_sum[artist_sum['total_plays']>=100].sort_values('skip_percentage', ascending=False).head(TOP_SONG_HEAD)
     
-    return top10_by_plays, top10_by_no_skips, top10_by_time, top10_by_diversity, top10_lowest_skip
+    return artist_sum, top10_by_plays, top10_by_no_skips, top10_by_time, top10_by_diversity, top10_lowest_skip, top10_highest_skip

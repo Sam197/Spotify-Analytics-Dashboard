@@ -165,34 +165,50 @@ if st.session_state.page == "Home":
     
 
     st.divider()
-    st.title("Track Analytics")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.title("Track Analytics")
+    with col2:
+        show_uri = st.checkbox("Show URIs?")
     st.write(f"Encompassing date range from {start_date.date()} to {end_date.date()}")
 
-    t10simple, t10noskip, t10mins, t10meanmin = analyticsFuncs.top_songs(filtered_df)
-    st.write("Top 10 songs by number of plays")
+    song_sum, t10simple, t10noskip, t10mins, t10meanmin, t10lowskip, t10hightskip = analyticsFuncs.top_songs(filtered_df, show_uri=show_uri)
+    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} songs by number of plays")
     st.dataframe(t10simple, hide_index=True)
-    st.write("Top 10 songs with no skips")
+    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} songs with no skips")
     st.dataframe(t10noskip, hide_index=True)
-    st.write("Top 10 songs by minutes listened to")
+    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} songs by minutes listened to")
     st.dataframe(t10mins, hide_index=True)
-    st.write("Top 10 songs by average listen time")
+    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} songs by average listen time")
     st.dataframe(t10meanmin, hide_index=True)
+    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} songs by lowest skip percentage (where a song has at least 20 plays)")
+    st.dataframe(t10lowskip, hide_index=True)
+    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} songs by highest skip percentage (where a song has at least 20 plays)")
+    st.dataframe(t10hightskip, hide_index=True)
+    st.divider()
+    st.write(f"Full song summary statistics for period {start_date.date()} to {end_date.date()}")
+    st.dataframe(song_sum, hide_index=True)
 
     st.divider()
     st.title("Artists")
     st.write(f"Encompassing date range from {start_date.date()} to {end_date.date()}")
 
-    ta10simple, ta10noskip, ta10mins, ta10unique, ta10lskippercen = analyticsFuncs.top_artists(filtered_df)
-    st.write("Top 10 artists by number of plays")
+    artist_sum, ta10simple, ta10noskip, ta10mins, ta10unique, ta10lskippercen, ta10hskippercen = analyticsFuncs.top_artists(filtered_df)
+    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} artists by number of plays")
     st.dataframe(ta10simple, hide_index=True)
-    st.write("Top 10 artists by number of full plays (no skips)")
+    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} artists by number of full plays (no skips)")
     st.dataframe(ta10noskip, hide_index=True)
-    st.write("Top 10 artists by minutes listened to")
+    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} artists by minutes listened to")
     st.dataframe(ta10mins, hide_index=True)
-    st.write("Top 10 artists by number of unique songs listened to")
+    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} artists by number of unique songs listened to")
     st.dataframe(ta10unique, hide_index=True)
-    st.write("Top 10 artists with lowest skip percentage (where an artist has at least 100 plays)")
+    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} artists with lowest skip percentage (where an artist has at least 100 plays)")
     st.dataframe(ta10lskippercen, hide_index=True)
+    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} artists with highest skip percentage (where an artist has at least 100 plays)")
+    st.dataframe(ta10hskippercen, hide_index=True)
+    st.divider()
+    st.write(f"Full artist summary statistics for period {start_date.date()} to {end_date.date()}")
+    st.dataframe(artist_sum, hide_index=True)
 
 elif st.session_state.page == 'Track':
     df = st.session_state.data
@@ -233,11 +249,16 @@ elif st.session_state.page == 'Artist':
             markdown.summary_artist_markdown(artist_sum_stats)
     if artist_hist is not None and artist_sum_stats['unique_songs'] > analyticsFuncs.TOP_SONG_HEAD:
         see_all_songs = st.checkbox(f"See all songs? ({artist_sum_stats['unique_songs']})")
-        print(artist_hist)
+        artist_hist = artist_hist['master_metadata_track_name'].value_counts().reset_index()
+        artist_hist.columns = ['Song', 'Listens']
         if see_all_songs:
-            artist_hist = artist_hist['master_metadata_track_name'].value_counts().reset_index()
-            artist_hist.columns = ['Song', 'Listens']
             st.dataframe(artist_hist, hide_index=True)
+        fig = px.histogram(
+            artist_hist,
+            x='Listens',
+            title="Distribution of Song Plays",
+        )
+        st.plotly_chart(fig)
         
 elif st.session_state.page == 'Album':
     st.title("Looks like I have not implemented this yet. Whoops")
