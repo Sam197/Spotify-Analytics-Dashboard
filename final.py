@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import analyticsFuncs, markdown
 import plotly.express as px
+import plots
 
 st.set_page_config(page_title="Music Analytics", layout="wide")
 
@@ -89,7 +90,7 @@ if st.session_state.page == "Home":
     with col1:
         st.metric("Total Plays", tot)
     with col2:
-        st.metric("Total Playes No Skips", totNSkip)
+        st.metric("Total Plays No Skips", totNSkip)
     with col3:
         st.metric("Skip Percentage", f"{(skipPercentage*100):.2f}%")
     with col4:
@@ -104,6 +105,22 @@ if st.session_state.page == "Home":
         st.markdown(f"## Last Listen: {ll[0].date()}")
         st.write(f"{ll[1]} by {ll[2]}")
     st.markdown(f"### Thats {ta} days apart!")
+
+    st.divider()
+
+    st.subheader("When Do You Listen?")
+    time_dfs = analyticsFuncs.get_data_for_polar_plots(filtered_df)
+    polar_plots = plots.make_polar_plots(time_dfs)
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.plotly_chart(polar_plots['hourly'], width='stretch')
+    with col2:
+        st.plotly_chart(polar_plots['daily_week'], width='stretch')
+    with col3:
+        st.plotly_chart(polar_plots['daily_month'], width='stretch')
+    with col4:
+        st.plotly_chart(polar_plots['monthly'], width='stretch')
 
     st.divider()
     st.subheader("Graph - Yipee")
@@ -163,6 +180,8 @@ if st.session_state.page == "Home":
 
     st.write(f"Peak {selected_label}: {peak_t} with {peak_t_count} listnes")
     
+    corr = resampled_df['minutes'].corr(resampled_df['streams'])
+    st.write(f"Correlation between Minutes Played and Number of Streams: {corr:.4f}")
 
     st.divider()
     col1, col2 = st.columns(2)
@@ -229,12 +248,25 @@ elif st.session_state.page == 'Track':
         album = st.text_input("Album Name", placeholder="Enter Album Name")
     if search_keyword != "":
         song_history = analyticsFuncs.get_song_stats(df, search_keyword, exact=exact, artist=artist, album=album)
-        if song_history is not None:
-            summary_song_data = analyticsFuncs.song_sum_stats(song_history)
-            markdown.summary_song_markdown(summary_song_data)
-            resampled_df = song_history.set_index('ts').resample('M').size().reset_index(name='Plays')
-            fig = px.line(resampled_df, x='ts', y='Plays',title="Daily Listens Over Time", labels={'ts': 'Date', 'Play Count': 'Number of Plays'})
-            st.plotly_chart(fig)
+    if song_history is not None:
+        summary_song_data = analyticsFuncs.song_sum_stats(song_history)
+        markdown.summary_song_markdown(summary_song_data)
+        resampled_df = song_history.set_index('ts').resample('ME').size().reset_index(name='Plays')
+        fig = px.line(resampled_df, x='ts', y='Plays',title="Daily Listens Over Time", labels={'ts': 'Date', 'Play Count': 'Number of Plays'})
+        st.plotly_chart(fig)
+        st.divider()
+        st.write("When did you listen?")
+        time_dfs = analyticsFuncs.get_data_for_polar_plots(song_history)
+        polar_plots = plots.make_polar_plots(time_dfs)
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.plotly_chart(polar_plots['hourly'], width='stretch')
+        with col2:
+            st.plotly_chart(polar_plots['daily_week'], width='stretch')
+        with col3:
+            st.plotly_chart(polar_plots['daily_month'], width='stretch')
+        with col4:
+            st.plotly_chart(polar_plots['monthly'], width='stretch')
 
 elif st.session_state.page == 'Artist':
     df = st.session_state.data
@@ -249,16 +281,31 @@ elif st.session_state.page == 'Artist':
             markdown.summary_artist_markdown(artist_sum_stats)
     if artist_hist is not None and artist_sum_stats['unique_songs'] > analyticsFuncs.TOP_SONG_HEAD:
         see_all_songs = st.checkbox(f"See all songs? ({artist_sum_stats['unique_songs']})")
-        artist_hist = artist_hist['master_metadata_track_name'].value_counts().reset_index()
-        artist_hist.columns = ['Song', 'Listens']
+        artist_hist_full = artist_hist['master_metadata_track_name'].value_counts().reset_index()
+        artist_hist_full.columns = ['Song', 'Listens']
         if see_all_songs:
-            st.dataframe(artist_hist, hide_index=True)
+            st.dataframe(artist_hist_full, hide_index=True)
         fig = px.histogram(
-            artist_hist,
+            artist_hist_full,
             x='Listens',
             title="Distribution of Song Plays",
         )
         st.plotly_chart(fig)
-        
+
+        st.divider()
+        st.subheader("When did you listen?")
+        st.write(f"For the time period {artist_hist['ts'].min().date()} to {artist_hist['ts'].max().date()}")
+        time_dfs = analyticsFuncs.get_data_for_polar_plots(artist_hist)
+        polar_plots = plots.make_polar_plots(time_dfs)
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.plotly_chart(polar_plots['hourly'], width='stretch')
+        with col2:
+            st.plotly_chart(polar_plots['daily_week'], width='stretch')
+        with col3:
+            st.plotly_chart(polar_plots['daily_month'], width='stretch')
+        with col4:
+            st.plotly_chart(polar_plots['monthly'], width='stretch')
+
 elif st.session_state.page == 'Album':
     st.title("Looks like I have not implemented this yet. Whoops")

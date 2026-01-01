@@ -5,6 +5,13 @@ MS_MIN_CONVERSION = 60000
 MS_HOUR_CONVERSION = 3600000
 TOP_SONG_HEAD = 5
 DAYS_PER_MONTH = 30.44
+DAYS_OF_WEEK = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday', 3: 'Thursday', 4: 'Friday', 5: 'Saturday', 6: 'Sunday'}
+MONTHS = {1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June',
+          7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'}
+DATE_SUFFIX = {1: 'st', 2: 'nd', 3: 'rd', 4: 'th', 5: 'th', 6: 'th', 7: 'th', 8: 'th', 9: 'th', 10: 'th',
+               11: 'th', 12: 'th', 13: 'th', 14: 'th', 15: 'th', 16: 'th', 17: 'th', 18: 'th', 19: 'th', 20: 'th',
+               21: 'st', 22: 'nd', 23: 'rd', 24: 'th', 25: 'th', 26: 'th', 27: 'th', 28: 'th', 29: 'th', 30: 'th',
+               31: 'st'}
 
 def containsOne(df):
 
@@ -271,3 +278,31 @@ def top_artists(df):
     top10_highest_skip = artist_sum[artist_sum['total_plays']>=100].sort_values('skip_percentage', ascending=False).head(TOP_SONG_HEAD)
     
     return artist_sum, top10_by_plays, top10_by_no_skips, top10_by_time, top10_by_diversity, top10_lowest_skip, top10_highest_skip
+
+def get_data_for_polar_plots(df):
+
+    hourly_counts = df['ts'].dt.hour.value_counts().sort_index().reset_index()
+    hourly_counts.columns = ['hour', 'count']
+    hourly_counts['hour'] = hourly_counts['hour'].astype(str) + ":00"
+
+    daily_counts_week = df['ts'].dt.dayofweek.value_counts().sort_index().reset_index()
+    daily_counts_week.columns = ['day', 'count']
+    daily_counts_week['day'] = daily_counts_week['day'].map(DAYS_OF_WEEK)
+
+    daily_counts_month = df['ts'].dt.day.value_counts().sort_index().reset_index()
+    daily_counts_month.columns = ['day', 'count']
+    daily_counts_month['day'] = daily_counts_month['day'].apply(lambda x: str(x) + DATE_SUFFIX[x])
+    monthly_counts = df['ts'].dt.month.value_counts().sort_index().reset_index()
+    monthly_counts.columns = ['month', 'count']
+    #monthly_counts = monthly_counts.reindex(range(0,12), fill_value=0)
+    monthly_counts['month'] = monthly_counts['month'].map(MONTHS)
+
+    # minute_counts = df['ts'].dt.minute.value_counts().sort_index().reset_index()
+    # minute_counts.columns = ['minute', 'count']
+    # minute_counts['minute'] = minute_counts['minute'].astype(str)
+
+    # second_counts = df['ts'].dt.second.value_counts().sort_index().reset_index()
+    # second_counts.columns = ['second', 'count']
+    # second_counts['second'] = second_counts['second'].astype(str)
+
+    return {'hourly_counts': hourly_counts, 'daily_counts_week': daily_counts_week, 'daily_counts_month': daily_counts_month, 'monthly_counts': monthly_counts}
