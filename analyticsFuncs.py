@@ -19,17 +19,24 @@ def containsOne(df):
 
     if unique_uris > 2:
         found_versions = (
-            df.groupby(['master_metadata_track_name', 'master_metadata_album_artist_name', 'master_metadata_album_album_name'])
-            .size()
-            .reset_index(name='Listens')
+            df.groupby([
+                'master_metadata_track_name', 
+                'master_metadata_album_artist_name'
+            ])
+            .agg({
+                'master_metadata_album_album_name': 'first',
+                'spotify_track_uri': 'count'
+            })
+            .reset_index()
             .rename(columns={
                 "master_metadata_track_name": "Track Name",
                 "master_metadata_album_artist_name": "Artist",
-                "master_metadata_album_album_name": "Album"
+                "master_metadata_album_album_name": "Album",
+                "spotify_track_uri": "Listens"
             })
         )
         st.write(f"Found Multiple ({unique_uris}) Songs - please refine your search")
-        st.dataframe(found_versions.sort_values('Listens', ascending=False), width='stretch', hide_index=True)
+        st.dataframe(found_versions.sort_values('Listens', ascending=False), width='stretch')
         return False
     
     return True
@@ -64,14 +71,19 @@ def song_sum_stats(df):
     # Cool New Stats
     tot_hours = df['ms_played'].sum() / MS_MIN_CONVERSION
     avg_plays_per_month = tot_plays / (max(timespan, 1) / DAYS_PER_MONTH)
+    df['month_year'] = df['ts'].dt.to_period('M')
+    peak_month = df['month_year'].value_counts().idxmax()
+    peak_month_count = df['month_year'].value_counts().max()
     
-    # "Binge Factor" - What's the most you played this in a single day?
-    most_plays_in_day = df.groupby(df['ts'].dt.date).size().max()
+    df['date'] = df['ts'].dt.to_period('D')
+    most_plays_in_day_date = df['date'].value_counts().idxmax()
+    most_plays_in_day = df['date'].value_counts().max()
 
     summary_stats = {'name':name, 'artist':artist, 'album':album,
                      'first_listen':first_listen, 'last_listen':last_listen, 'timespan':timespan,
                      'tot_plays':tot_plays, 'tot_skips':tot_skips, 'full_plays':full_plays, 'listen_rate':listen_rate,
-                     'tot_hours':tot_hours, 'avg_plays_per_month':avg_plays_per_month, 'most_plays_in_day': most_plays_in_day}
+                     'tot_hours':tot_hours, 'avg_plays_per_month':avg_plays_per_month, 'most_plays_in_day': most_plays_in_day,
+                     'most_plays_in_day_date': most_plays_in_day_date, 'peak_month':peak_month, 'peak_month_count':peak_month_count}
 
     return summary_stats
 
@@ -96,6 +108,7 @@ def get_song(df, song_name, exact=False, artist=None, album=None):
             mask &= df['master_metadata_album_album_name'].str.contains(album, case=False, na=False)
 
     song_history = df[mask].copy()
+
     return song_history
 
 def get_song_stats(df, song_name, exact=False, artist=None, album=None):
@@ -305,4 +318,4 @@ def get_data_for_polar_plots(df):
     # second_counts.columns = ['second', 'count']
     # second_counts['second'] = second_counts['second'].astype(str)
 
-    return {'hourly_counts': hourly_counts, 'daily_counts_week': daily_counts_week, 'daily_counts_month': daily_counts_month, 'monthly_counts': monthly_counts}
+    return {'hourly_counts': hourly_counts, 'daily_counts_week': daily_counts_week, 'daily_counts_month': daily_counts_month, 'monthly_counts':  monthly_counts}

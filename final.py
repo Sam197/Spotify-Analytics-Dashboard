@@ -18,7 +18,7 @@ if st.session_state.data is not None:
     st.sidebar.markdown("Checkout the [GitHub Repository](https://github.com/Sam197/Spotify-Analytics-Dashboard)!")
 
 if st.session_state.page == 'Upload' or st.session_state.data is None:
-    st.title("📊 Music Analytics Dashboard")
+    st.title("📊 Spotify Analytics Dashboard")
     if st.session_state.data is None:
         st.markdown("### Upload your data to get started")
     else:
@@ -37,6 +37,10 @@ if st.session_state.page == 'Upload' or st.session_state.data is None:
             coldrop = ["ip_addr", "episode_show_name", 'audiobook_title', 'audiobook_uri', 'audiobook_chapter_uri', 'audiobook_chapter_title', 'episode_name', 'spotify_episode_uri']
             df = alldata.drop(columns=coldrop)
             df['ts'] = pd.to_datetime(df['ts'])
+
+            uri_mapping = df.groupby(['master_metadata_track_name', 'master_metadata_album_artist_name'])['spotify_track_uri'].first().reset_index()
+            df = df.merge(uri_mapping, on=['master_metadata_track_name', 'master_metadata_album_artist_name'], suffixes=('_old', ''))
+            df = df.drop(columns=['spotify_track_uri_old'])
 
             st.session_state.data = df.copy(deep=True)
                 
@@ -111,16 +115,7 @@ if st.session_state.page == "Home":
     st.subheader("When Do You Listen?")
     time_dfs = analyticsFuncs.get_data_for_polar_plots(filtered_df)
     polar_plots = plots.make_polar_plots(time_dfs)
-
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.plotly_chart(polar_plots['hourly'], width='stretch')
-    with col2:
-        st.plotly_chart(polar_plots['daily_week'], width='stretch')
-    with col3:
-        st.plotly_chart(polar_plots['daily_month'], width='stretch')
-    with col4:
-        st.plotly_chart(polar_plots['monthly'], width='stretch')
+    plots.plot_polar_plots(polar_plots)
 
     st.divider()
     st.subheader("Graph - Yipee")
@@ -248,6 +243,7 @@ elif st.session_state.page == 'Track':
         album = st.text_input("Album Name", placeholder="Enter Album Name")
     if search_keyword != "":
         song_history = analyticsFuncs.get_song_stats(df, search_keyword, exact=exact, artist=artist, album=album)
+        print(song_history)
     if song_history is not None:
         summary_song_data = analyticsFuncs.song_sum_stats(song_history)
         markdown.summary_song_markdown(summary_song_data)
@@ -258,15 +254,7 @@ elif st.session_state.page == 'Track':
         st.write("When did you listen?")
         time_dfs = analyticsFuncs.get_data_for_polar_plots(song_history)
         polar_plots = plots.make_polar_plots(time_dfs)
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.plotly_chart(polar_plots['hourly'], width='stretch')
-        with col2:
-            st.plotly_chart(polar_plots['daily_week'], width='stretch')
-        with col3:
-            st.plotly_chart(polar_plots['daily_month'], width='stretch')
-        with col4:
-            st.plotly_chart(polar_plots['monthly'], width='stretch')
+        plots.plot_polar_plots(polar_plots)
 
 elif st.session_state.page == 'Artist':
     df = st.session_state.data
@@ -297,15 +285,7 @@ elif st.session_state.page == 'Artist':
         st.write(f"For the time period {artist_hist['ts'].min().date()} to {artist_hist['ts'].max().date()}")
         time_dfs = analyticsFuncs.get_data_for_polar_plots(artist_hist)
         polar_plots = plots.make_polar_plots(time_dfs)
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.plotly_chart(polar_plots['hourly'], width='stretch')
-        with col2:
-            st.plotly_chart(polar_plots['daily_week'], width='stretch')
-        with col3:
-            st.plotly_chart(polar_plots['daily_month'], width='stretch')
-        with col4:
-            st.plotly_chart(polar_plots['monthly'], width='stretch')
+        plots.plot_polar_plots(polar_plots)
 
 elif st.session_state.page == 'Album':
     st.title("Looks like I have not implemented this yet. Whoops")

@@ -26,8 +26,9 @@ def summary_song_markdown(data):
     ---
 
     #### ⚡ Engagement
-    * **Binge Factor:** {data['most_plays_in_day']} plays in a single day
+    * **Binge Factor:** {data['most_plays_in_day']} plays in a single day (on {data['most_plays_in_day_date']})
     * **Monthly Velocity:** {data['avg_plays_per_month']:.2f} plays/month
+    * **Peak Month:** {data['peak_month']} ({data['peak_month_count']} plays)
 
     ---
     """)
