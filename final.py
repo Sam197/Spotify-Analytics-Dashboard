@@ -3,6 +3,14 @@ import pandas as pd
 import analyticsFuncs, markdown
 import plotly.express as px
 import plots
+import io
+
+UPLOAD_FILES_HELP_TEXT = """
+Upload Spotify Data here. You can either upload the JSON files you download from Spotify or
+a previously saved Parquet file for faster loading. If you upload JSON files, they will be
+processed and you will have the option to save the combined dataset as a Parquet file for future use.
+Only JSON and Parquet files are supported.
+"""
 
 st.set_page_config(page_title="Music Analytics", layout="wide")
 
@@ -26,13 +34,16 @@ if st.session_state.page == 'Upload' or st.session_state.data is None:
     
     uploaded_files = st.file_uploader(
         "Choose files",
-        type=['json'],
-        help="Upload JSON files containing your music data",
+        type=['json', 'parquet'],
+        help=UPLOAD_FILES_HELP_TEXT,
         accept_multiple_files=True
     )
 
     if uploaded_files is not None and uploaded_files != []:
-        try:
+        if any([file.name.endswith('.parquet') for file in uploaded_files]):
+            df = pd.read_parquet(uploaded_files[0])
+            
+        else:
             alldata = pd.concat([pd.read_json(path) for path in uploaded_files])
             coldrop = ["ip_addr", "episode_show_name", 'audiobook_title', 'audiobook_uri', 'audiobook_chapter_uri', 'audiobook_chapter_title', 'episode_name', 'spotify_episode_uri']
             df = alldata.drop(columns=coldrop)
@@ -42,24 +53,33 @@ if st.session_state.page == 'Upload' or st.session_state.data is None:
             df = df.merge(uri_mapping, on=['master_metadata_track_name', 'master_metadata_album_artist_name'], suffixes=('_old', ''))
             df = df.drop(columns=['spotify_track_uri_old'])
 
-            st.session_state.data = df.copy(deep=True)
-                
-            st.success(f"✅ Successfully loaded {len(df)} rows and {len(df.columns)} columns!")
+        st.session_state.data = df.copy(deep=True)
             
-            if not st.session_state.has_inital_data:
-                st.write("Loading Landing Page!")
-            st.dataframe(st.session_state.data, hide_index=True)
-            if not st.session_state.has_inital_data:
-                st.session_state.has_inital_data = True
-                st.rerun()
-
-        except Exception as e:
-            st.error(f"Error loading file: {str(e)}")
+        st.success(f"✅ Successfully loaded {len(df)} rows and {len(df.columns)} columns!")
+        
+        if not st.session_state.has_inital_data:
+            st.write("Loading Landing Page!")
+        st.dataframe(st.session_state.data, hide_index=True)
+        if not st.session_state.has_inital_data:
+            st.session_state.has_inital_data = True
+            st.rerun()
     else:
         if not st.session_state.has_inital_data:
             st.info("Please upload .json files to begin analysis")
         else:
             st.info("You can analyse different data if you upload new stuff here!")
+            st.write("Do you want to save the loaded dataset for quicker uploads next time?")
+
+            buffer = io.BytesIO()
+            st.session_state.data.to_parquet(buffer, index=False)
+
+            filename = st.text_input("Enter filename to save as (without extension)", placeholder="my_spotify_data")
+            st.download_button(
+                "Download Current Dataset",
+                data=buffer.getvalue(),
+                file_name="my_spotify_data.parquet" if filename == "" else f"{filename}.parquet",
+                mime="application/octet-stream"
+            )
 
 if st.session_state.page == "Home":
     df = st.session_state.data
