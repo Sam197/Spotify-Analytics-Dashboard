@@ -5,10 +5,10 @@ import numpy as np
 from analyticsFuncs import MS_MIN_CONVERSION
 
 POLAR_PLOTS_DEFULTS = {
-    'hourly': {'dftitle': 'hourly_counts', 'theta': 'hour', 'r': 'count', 'title': "Listens by Hour of Day", 'labels': {'hour': 'Hour of Day', 'count': 'Number of Listens'}},
-    'daily_week': {'dftitle': 'daily_counts_week', 'theta': 'day', 'r': 'count', 'title': "Listens by Day of Week", 'labels': {'day': 'Day of Week', 'count': 'Number of Listens'}},
-    'daily_month': {'dftitle': 'daily_counts_month', 'theta': 'day', 'r': 'count', 'title': "Listens by Day of Month", 'labels': {'day': 'Day of Month', 'count': 'Number of Listens'}},
-    'monthly': {'dftitle': 'monthly_counts', 'theta': 'month', 'r': 'count', 'title': "Listens by Month", 'labels': {'month': 'Month', 'count': 'Number of Listens'}}
+    'hourly_counts': {'dftitle': 'hourly_counts', 'theta': 'hour', 'r': 'count', 'title': "Listens by Hour of Day", 'labels': {'hour': 'Hour of Day', 'count': 'Number of Listens'}},
+    'daily_counts_week': {'dftitle': 'daily_counts_week', 'theta': 'day', 'r': 'count', 'title': "Listens by Day of Week", 'labels': {'day': 'Day of Week', 'count': 'Number of Listens'}},
+    'daily_counts_month': {'dftitle': 'daily_counts_month', 'theta': 'day', 'r': 'count', 'title': "Listens by Day of Month", 'labels': {'day': 'Day of Month', 'count': 'Number of Listens'}},
+    'monthly_counts': {'dftitle': 'monthly_counts', 'theta': 'month', 'r': 'count', 'title': "Listens by Month", 'labels': {'month': 'Month', 'count': 'Number of Listens'}}
 }
 TEMPLATE = "plotly_dark"
 POLAR_BARGAP = 0
@@ -88,10 +88,11 @@ def make_polar_plot(df, theta, r, title, labels):
     fig.update_traces(marker_line_width=MARKER_LINE_WIDTH, marker_line_color=MARKER_LINE_COLOR)
     return fig
 
-def make_polar_plots(dfs, config=POLAR_PLOTS_DEFULTS):
+def make_polar_plots(data, config=POLAR_PLOTS_DEFULTS):
     plots = {}
-    for key, params in config.items():
-        df = dfs[params['dftitle']]
+    for time_period in data.__dataclass_fields__.keys():
+        df = getattr(data, time_period)
+        params = config[time_period]
         fig = make_polar_plot(
             df,
             theta=params['theta'],
@@ -99,8 +100,22 @@ def make_polar_plots(dfs, config=POLAR_PLOTS_DEFULTS):
             title=params['title'],
             labels=params['labels']
         )
-        plots[key] = fig
+        plots[time_period] = fig
     return plots
+
+# def make_polar_plots(dfs, config=POLAR_PLOTS_DEFULTS):
+#     plots = {}
+#     for key, params in config.items():
+#         df = dfs[params['dftitle']]
+#         fig = make_polar_plot(
+#             df,
+#             theta=params['theta'],
+#             r=params['r'],
+#             title=params['title'],
+#             labels=params['labels']
+#         )
+#         plots[key] = fig
+#     return plots
 
 def plot_polar_plots(plots):
     cols = st.columns(len(plots))
