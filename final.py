@@ -11,6 +11,10 @@ a previously saved Parquet file for faster loading. If you upload JSON files, th
 processed and you will have the option to save the combined dataset as a Parquet file for future use.
 Only JSON and Parquet files are supported.
 """
+DOWNLOAD_FILE_HELP_TEXT = """
+You can download your current dataset as a Parquet file for faster loading next time.
+Simply provide a filename (without extension), hit enter, and click the download button.
+"""
 
 st.set_page_config(page_title="Music Analytics", layout="wide")
 
@@ -31,6 +35,8 @@ if st.session_state.page == 'Upload' or st.session_state.data is None:
         st.markdown("### Upload your data to get started")
     else:
         st.markdown("### Upload different data?")
+    
+    st.write("Don't know how to get your Spotify data? Request your 'Extended Streaming History' from [Spotify here](https://www.spotify.com/uk/account/privacy/). Once you have the data, upload the JSON files here to get started!")
     
     uploaded_files = st.file_uploader(
         "Choose files",
@@ -65,7 +71,7 @@ if st.session_state.page == 'Upload' or st.session_state.data is None:
             st.rerun()
     else:
         if not st.session_state.has_inital_data:
-            st.info("Please upload .json files to begin analysis")
+            st.info("Please upload .json files, or a .parquet file to begin analysis")
         else:
             st.info("You can analyse different data if you upload new stuff here!")
             st.write("Do you want to save the loaded dataset for quicker uploads next time?")
@@ -73,7 +79,7 @@ if st.session_state.page == 'Upload' or st.session_state.data is None:
             buffer = io.BytesIO()
             st.session_state.data.to_parquet(buffer, index=False)
 
-            filename = st.text_input("Enter filename to save as (without extension)", placeholder="my_spotify_data")
+            filename = st.text_input("Enter filename to save as (without extension)", placeholder="my_spotify_data", help=DOWNLOAD_FILE_HELP_TEXT)
             st.download_button(
                 "Download Current Dataset",
                 data=buffer.getvalue(),
@@ -140,63 +146,7 @@ if st.session_state.page == "Home":
     st.divider()
     st.subheader("Graph - Yipee")
 
-    freq_map = {
-    "Daily": "D",
-    "Weekly": "W",
-    "Monthly": "M",
-    "Yearly": "Y"
-    }
-
-    selected_label = st.select_slider(
-        "Select Time Grain",
-        options=["Daily", "Weekly", "Monthly", "Yearly"],
-        value="Weekly"
-    )
-    freq_alias = freq_map[selected_label]
-
-    resampled_df = filtered_df.set_index('ts').resample(freq_alias)['ms_played'].agg(['sum', 'size']).reset_index()
-    resampled_df.columns = ['ts', 'ms_played', 'streams']
-    resampled_df['minutes'] = resampled_df['ms_played'] / 60000
-
-    fig = px.line(
-        resampled_df, 
-        x='ts', 
-        y='minutes', 
-        title=f"Total Minutes Listened ({selected_label}) between {start_date.date()} and {end_date.date()}",
-        labels={'ts': 'Date', 'minutes': 'Minutes Played'},
-        #markers=True if selected_label != "Daily" else False # Markers help on larger grains
-    )
-
-    fig.update_layout(hovermode="x unified")
-    
-    st.plotly_chart(fig, width='stretch')
-
-    peak_mins_t = resampled_df['minutes'].idxmax()
-    peak_mins_freq = resampled_df['minutes'].max()
-    peak_mins_t = resampled_df['ts'].iloc[peak_mins_t].date()
-    st.write(f"Peak {selected_label}: {peak_mins_t} with {peak_mins_freq:.2f} mins")
-
-
-    fig = px.line(
-        resampled_df,
-        x='ts',
-        y='streams',
-        title=f"Total Number of Streams ({selected_label}) between {start_date.date()} and {end_date.date()}",
-        labels={'ts': 'Date'}
-    )
-    fig.update_layout(hovermode="x unified")
-    
-    st.plotly_chart(fig, width='stretch')
-    
-    track_df = filtered_df.copy(deep=True)
-    track_df['time_frame'] = track_df['ts'].dt.to_period(freq_alias)
-    peak_t = track_df['time_frame'].value_counts().idxmax()
-    peak_t_count = track_df['time_frame'].value_counts().max()
-
-    st.write(f"Peak {selected_label}: {peak_t} with {peak_t_count} listnes")
-    
-    corr = resampled_df['minutes'].corr(resampled_df['streams'])
-    st.write(f"Correlation between Minutes Played and Number of Streams: {corr:.4f}")
+    plots.make_mins_and_streams_plots(filtered_df)
 
     st.divider()
     col1, col2 = st.columns(2)
@@ -245,7 +195,6 @@ if st.session_state.page == "Home":
     st.dataframe(artist_sum, hide_index=True)
 
 elif st.session_state.page == 'Track':
-    df = st.session_state.data
     st.title("Looking for a Specific Track?")
     search_keyword = st.text_input("Start Searching for a Song", placeholder="Enter a Song Title")
     artist, album = "", ""
@@ -262,28 +211,27 @@ elif st.session_state.page == 'Track':
     if albumEntry:
         album = st.text_input("Album Name", placeholder="Enter Album Name")
     if search_keyword != "":
-        song_history = analyticsFuncs.get_song_stats(df, search_keyword, exact=exact, artist=artist, album=album)
+        song_history = analyticsFuncs.get_song_stats(st.session_state.data, search_keyword, exact=exact, artist=artist, album=album)
         print(song_history)
     if song_history is not None:
         summary_song_data = analyticsFuncs.song_sum_stats(song_history)
         markdown.summary_song_markdown(summary_song_data)
-        resampled_df = song_history.set_index('ts').resample('ME').size().reset_index(name='Plays')
-        fig = px.line(resampled_df, x='ts', y='Plays',title="Daily Listens Over Time", labels={'ts': 'Date', 'Play Count': 'Number of Plays'})
-        st.plotly_chart(fig)
+        plots.make_mins_and_streams_plots(song_history)
         st.divider()
         st.write("When did you listen?")
         time_dfs = analyticsFuncs.get_data_for_polar_plots(song_history)
         polar_plots = plots.make_polar_plots(time_dfs)
         plots.plot_polar_plots(polar_plots)
+        if st.checkbox("See Full Listening History for this Song?"):
+            st.dataframe(song_history, hide_index=True)
 
 elif st.session_state.page == 'Artist':
-    df = st.session_state.data
     st.title("Looking for a Specific Artist?")
     search_keyword = st.text_input("Start Searching for an Artist", placeholder="Enter an Artist's Name")
     exact = st.checkbox("Exact Match?")
     artist_hist = None
     if search_keyword != "":
-        artist_hist = analyticsFuncs.get_artist_hist(df, search_keyword, exact=exact)
+        artist_hist = analyticsFuncs.get_artist_hist(st.session_state.data, search_keyword, exact=exact)
         if artist_hist is not None:
             artist_sum_stats = analyticsFuncs.artist_sum_stats(artist_hist)
             markdown.summary_artist_markdown(artist_sum_stats)
@@ -293,12 +241,15 @@ elif st.session_state.page == 'Artist':
         artist_hist_full.columns = ['Song', 'Listens']
         if see_all_songs:
             st.dataframe(artist_hist_full, hide_index=True)
-        fig = px.histogram(
-            artist_hist_full,
-            x='Listens',
-            title="Distribution of Song Plays",
-        )
-        st.plotly_chart(fig)
+        
+        plots.make_mins_and_streams_plots(artist_hist)
+
+        # fig = px.histogram(
+        #     artist_hist_full,
+        #     x='Listens',
+        #     title="Distribution of Song Plays",
+        # )
+        # st.plotly_chart(fig)
 
         st.divider()
         st.subheader("When did you listen?")
@@ -306,6 +257,10 @@ elif st.session_state.page == 'Artist':
         time_dfs = analyticsFuncs.get_data_for_polar_plots(artist_hist)
         polar_plots = plots.make_polar_plots(time_dfs)
         plots.plot_polar_plots(polar_plots)
+
+    if artist_hist is not None:
+        if st.checkbox("See Full Listening History for this Artist?"):
+            st.dataframe(artist_hist, hide_index=True)
 
 elif st.session_state.page == 'Album':
     st.title("Looks like I have not implemented this yet. Whoops")

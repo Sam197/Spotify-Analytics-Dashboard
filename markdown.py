@@ -1,4 +1,5 @@
 import streamlit as st
+from analyticsFuncs import MONTHS
 
 def summary_song_markdown(data):
 
@@ -28,7 +29,7 @@ def summary_song_markdown(data):
     #### ⚡ Engagement
     * **Binge Factor:** {data['most_plays_in_day']} plays in a single day (on {data['most_plays_in_day_date']})
     * **Monthly Velocity:** {data['avg_plays_per_month']:.2f} plays/month
-    * **Peak Month:** {data['peak_month']} ({data['peak_month_count']} plays)
+    * **Peak Month:** {MONTHS[data['peak_month'].month]} {data['peak_month'].year} ({data['peak_month_count']} plays)
 
     ---
     """)
@@ -62,8 +63,13 @@ def summary_artist_markdown(data):
 
     ---
 
-    #### 🏆 Insights & Top Tracks
-    * **Peak Era:** You listened to this artist most in **{data['peak_month']}** ({data['peak_month_count']} plays).
+    #### ⚡ Engagement
+    * **Binge Factor:** {data['most_plays_in_day']} plays in a single day (on {data['most_plays_in_day_date']})
+    * **Monthly Velocity:** {data['avg_plays_per_month']:.2f} plays/month
+    * **Peak Month:** {MONTHS[data['peak_month'].month]} {data['peak_month'].year} ({data['peak_month_count']} plays)
+    
+    ---
+    #### 🎵 Top Songs
     """
     )
     st.dataframe(data['top_songs'], hide_index=True)

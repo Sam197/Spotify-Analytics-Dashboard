@@ -69,7 +69,7 @@ def song_sum_stats(df):
     listen_rate = (full_plays / tot_plays) * 100 if tot_plays > 0 else 0
     
     # Cool New Stats
-    tot_hours = df['ms_played'].sum() / MS_MIN_CONVERSION
+    tot_hours = df['ms_played'].sum() / MS_HOUR_CONVERSION
     avg_plays_per_month = tot_plays / (max(timespan, 1) / DAYS_PER_MONTH)
     df['month_year'] = df['ts'].dt.to_period('M')
     peak_month = df['month_year'].value_counts().idxmax()
@@ -171,6 +171,12 @@ def artist_sum_stats(artist_df):
     peak_month = artist_df['month_year'].value_counts().idxmax()
     peak_month_count = artist_df['month_year'].value_counts().max()
 
+    artist_df['date'] = artist_df['ts'].dt.to_period('D')
+    most_plays_in_day_date = artist_df['date'].value_counts().idxmax()
+    most_plays_in_day = artist_df['date'].value_counts().max()
+    timespan = (artist_df['ts'].iloc[-1] - artist_df['ts'].iloc[0]).days
+    avg_plays_per_month = tot_plays / (max(timespan, 1) / DAYS_PER_MONTH)
+
     # 7. Loyalty Score (How many different years have you listened to them?)
     years_active = artist_df['ts'].dt.year.nunique()
     # 1. First, build the Top Tracks string
@@ -180,7 +186,8 @@ def artist_sum_stats(artist_df):
 
     summary_stats = {'artist_name':actual_name, 'tot_plays':tot_plays, 'tot_hours':tot_hours, 'unique_songs':unique_songs,
                      'first_song_row':first_row, 'last_song_row':last_row, 'peak_month':peak_month, 'peak_month_count':peak_month_count,
-                     'years_active':years_active, 'top_songs':top_songs}
+                     'years_active':years_active, 'top_songs':top_songs, 'most_plays_in_day': most_plays_in_day,
+                     'most_plays_in_day_date': most_plays_in_day_date, 'avg_plays_per_month': avg_plays_per_month}
 
     return summary_stats
 
@@ -242,13 +249,16 @@ def dfAnalytics(df):
 
 def top_songs(df, show_uri=True):
     song_sum = dfAnalytics(df)
+    # song_sum['total_minutes'] = song_sum['total_minutes'].map('{:.2f}'.format)
+    # song_sum['mean_listen_mins'] = song_sum['mean_listen_mins'].map('{:.2f}'.format)
+    # song_sum['skip_percentage'] = song_sum['skip_percentage'].map('{:.2f}'.format)
     if not show_uri:
         song_sum.drop(columns=['spotify_track_uri'], inplace=True)
     top10simple = song_sum.sort_values('total_plays', ascending=False).head(TOP_SONG_HEAD)
     top10noskip = song_sum.sort_values('plays_no_skips', ascending=False).head(TOP_SONG_HEAD)
     top10mins = song_sum.sort_values('total_minutes', ascending=False).head(TOP_SONG_HEAD)
     top10meanmins = song_sum.sort_values('mean_listen_mins', ascending=False).head(TOP_SONG_HEAD)
-    top10lowestskip = song_sum[song_sum['total_plays']>=20].sort_values('skip_percentage').head(TOP_SONG_HEAD)
+    top10lowestskip = song_sum[song_sum['total_plays']>=20].sort_values(by=['skip_percentage', 'total_plays'], ascending=[True, False]).head(TOP_SONG_HEAD)
     top10highestskip = song_sum[song_sum['total_plays']>=20].sort_values('skip_percentage', ascending=False).head(TOP_SONG_HEAD)
 
     return song_sum, top10simple, top10noskip, top10mins, top10meanmins, top10lowestskip, top10highestskip
