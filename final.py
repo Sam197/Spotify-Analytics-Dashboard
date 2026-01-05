@@ -4,6 +4,7 @@ import analyticsFuncs, markdown
 import plotly.express as px
 import plots
 import io
+import models
 
 UPLOAD_FILES_HELP_TEXT = """
 Upload Spotify Data here. You can either upload the JSON files you download from Spotify or
@@ -116,31 +117,30 @@ if st.session_state.page == "Home":
     
     # Basic statistics
     col1, col2, col3, col4 = st.columns(4)
-    tot, totNSkip, skipPercentage, totMins = analyticsFuncs.basicStats(filtered_df)
+    basic_stats = analyticsFuncs.basicStats(filtered_df)
     with col1:
-        st.metric("Total Plays", tot)
+        st.metric("Total Plays", basic_stats.total_plays)
     with col2:
-        st.metric("Total Plays No Skips", totNSkip)
+        st.metric("Total Plays No Skips", basic_stats.total_plays_no_skips)
     with col3:
-        st.metric("Skip Percentage", f"{(skipPercentage*100):.2f}%")
+        st.metric("Skip Percentage", f"{(basic_stats.skip_percentage*100):.2f}%")
     with col4:
-        st.metric("Total Listening Time", f"{totMins:.2f} minutes")
+        st.metric("Total Listening Time", f"{basic_stats.total_minutes:.2f} minutes")
 
     col1, col2 = st.columns(2)
-    fl, ll, ta = analyticsFuncs.firstLastPlay(filtered_df)
+    first_last_play = analyticsFuncs.firstLastPlay(filtered_df)
     with col1:
-        st.markdown(f"## First Listen: {fl[0].date()}")
-        st.write(f"{fl[1]} by {fl[2]}")
+        st.markdown(f"## First Listen: {first_last_play.first_play[0].date()}")
+        st.write(f"{first_last_play.first_play[1]} by {first_last_play.first_play[2]}")
     with col2:
-        st.markdown(f"## Last Listen: {ll[0].date()}")
-        st.write(f"{ll[1]} by {ll[2]}")
-    st.markdown(f"### Thats {ta} days apart!")
-
+        st.markdown(f"## Last Listen: {first_last_play.last_play[0].date()}")
+        st.write(f"{first_last_play.last_play[1]} by {first_last_play.last_play[2]}")
+    st.markdown(f"### Thats {first_last_play.timespan} days apart!")
     st.divider()
 
     st.subheader("When Do You Listen?")
-    time_dfs = analyticsFuncs.get_data_for_polar_plots(filtered_df)
-    polar_plots = plots.make_polar_plots(time_dfs)
+    polar_plot_data = analyticsFuncs.get_data_for_polar_plots(filtered_df)
+    polar_plots = plots.make_polar_plots(polar_plot_data)
     plots.plot_polar_plots(polar_plots)
 
     st.divider()
@@ -156,43 +156,43 @@ if st.session_state.page == "Home":
         show_uri = st.checkbox("Show URIs?")
     st.write(f"Encompassing date range from {start_date.date()} to {end_date.date()}")
 
-    song_sum, t10simple, t10noskip, t10mins, t10meanmin, t10lowskip, t10hightskip = analyticsFuncs.top_songs(filtered_df, show_uri=show_uri)
-    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} songs by number of plays")
-    st.dataframe(t10simple, hide_index=True)
-    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} songs with no skips")
-    st.dataframe(t10noskip, hide_index=True)
-    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} songs by minutes listened to")
-    st.dataframe(t10mins, hide_index=True)
-    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} songs by average listen time")
-    st.dataframe(t10meanmin, hide_index=True)
-    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} songs by lowest skip percentage (where a song has at least 20 plays)")
-    st.dataframe(t10lowskip, hide_index=True)
-    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} songs by highest skip percentage (where a song has at least 20 plays)")
-    st.dataframe(t10hightskip, hide_index=True)
+    top_songs = analyticsFuncs.top_songs(filtered_df, show_uri=show_uri)
+    st.write(f"Top {models.Config.top_n} songs by number of plays")
+    st.dataframe(top_songs.by_plays, hide_index=True)
+    st.write(f"Top {models.Config.top_n} songs with no skips")
+    st.dataframe(top_songs.by_no_skips, hide_index=True)
+    st.write(f"Top {models.Config.top_n} songs by minutes listened to")
+    st.dataframe(top_songs.by_minutes, hide_index=True)
+    st.write(f"Top {models.Config.top_n} songs by average listen time")
+    st.dataframe(top_songs.by_mean_minutes, hide_index=True)
+    st.write(f"Top {models.Config.top_n} songs by lowest skip percentage (where a song has at least 20 plays)")
+    st.dataframe(top_songs.lowest_skip, hide_index=True)
+    st.write(f"Top {models.Config.top_n} songs by highest skip percentage (where a song has at least 20 plays)")
+    st.dataframe(top_songs.highest_skip, hide_index=True)
     st.divider()
     st.write(f"Full song summary statistics for period {start_date.date()} to {end_date.date()}")
-    st.dataframe(song_sum, hide_index=True)
+    st.dataframe(top_songs.all_data, hide_index=True)
 
     st.divider()
     st.title("Artists")
     st.write(f"Encompassing date range from {start_date.date()} to {end_date.date()}")
 
-    artist_sum, ta10simple, ta10noskip, ta10mins, ta10unique, ta10lskippercen, ta10hskippercen = analyticsFuncs.top_artists(filtered_df)
-    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} artists by number of plays")
-    st.dataframe(ta10simple, hide_index=True)
-    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} artists by number of full plays (no skips)")
-    st.dataframe(ta10noskip, hide_index=True)
-    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} artists by minutes listened to")
-    st.dataframe(ta10mins, hide_index=True)
-    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} artists by number of unique songs listened to")
-    st.dataframe(ta10unique, hide_index=True)
-    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} artists with lowest skip percentage (where an artist has at least 100 plays)")
-    st.dataframe(ta10lskippercen, hide_index=True)
-    st.write(f"Top {analyticsFuncs.TOP_SONG_HEAD} artists with highest skip percentage (where an artist has at least 100 plays)")
-    st.dataframe(ta10hskippercen, hide_index=True)
+    top_artists = analyticsFuncs.top_artists(filtered_df)
+    st.write(f"Top {models.Config.top_n} artists by number of plays")
+    st.dataframe(top_artists.by_plays, hide_index=True)
+    st.write(f"Top {models.Config.top_n} artists by number of full plays (no skips)")
+    st.dataframe(top_artists.by_no_skips, hide_index=True)
+    st.write(f"Top {models.Config.top_n} artists by minutes listened to")
+    st.dataframe(top_artists.by_time, hide_index=True)
+    st.write(f"Top {models.Config.top_n} artists by number of unique songs listened to")
+    st.dataframe(top_artists.by_diversity, hide_index=True)
+    st.write(f"Top {models.Config.top_n} artists with lowest skip percentage (where an artist has at least 100 plays)")
+    st.dataframe(top_artists.lowest_skip, hide_index=True)
+    st.write(f"Top {models.Config.top_n} artists with highest skip percentage (where an artist has at least 100 plays)")
+    st.dataframe(top_artists.highest_skip, hide_index=True)
     st.divider()
     st.write(f"Full artist summary statistics for period {start_date.date()} to {end_date.date()}")
-    st.dataframe(artist_sum, hide_index=True)
+    st.dataframe(top_artists.all_data, hide_index=True)
 
 elif st.session_state.page == 'Track':
     st.title("Looking for a Specific Track?")
@@ -235,21 +235,14 @@ elif st.session_state.page == 'Artist':
         if artist_hist is not None:
             artist_sum_stats = analyticsFuncs.artist_sum_stats(artist_hist)
             markdown.summary_artist_markdown(artist_sum_stats)
-    if artist_hist is not None and artist_sum_stats['unique_songs'] > analyticsFuncs.TOP_SONG_HEAD:
-        see_all_songs = st.checkbox(f"See all songs? ({artist_sum_stats['unique_songs']})")
+    if artist_hist is not None and artist_sum_stats.unique_songs > models.Config.top_n:
+        see_all_songs = st.checkbox(f"See all songs? ({artist_sum_stats.unique_songs})")
         artist_hist_full = artist_hist['master_metadata_track_name'].value_counts().reset_index()
         artist_hist_full.columns = ['Song', 'Listens']
         if see_all_songs:
             st.dataframe(artist_hist_full, hide_index=True)
         
         plots.make_mins_and_streams_plots(artist_hist)
-
-        # fig = px.histogram(
-        #     artist_hist_full,
-        #     x='Listens',
-        #     title="Distribution of Song Plays",
-        # )
-        # st.plotly_chart(fig)
 
         st.divider()
         st.subheader("When did you listen?")
