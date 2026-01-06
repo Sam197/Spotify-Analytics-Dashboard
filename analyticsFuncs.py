@@ -1,3 +1,4 @@
+from matplotlib import artist
 import streamlit as st
 import pandas as pd
 from models import *
@@ -5,12 +6,22 @@ from models import *
 MS_MIN_CONVERSION = 60000
 MS_HOUR_CONVERSION = 3600000
 DAYS_PER_MONTH = 30.44
-COLUMN_ORDER = ['spotify_track_uri', 'track_name', 'artist_name', 'album_name',
-                'total_plays', 'plays_no_skips', 'total_minutes', 'mean_listen_mins', 'skip_percentage',]
+TOP_SONG_COLUMN_ORDER = ['spotify_track_uri', 'track_name', 'artist_name', 'album_name',
+                'total_plays', 'plays_no_skips', 'total_minutes', 'mean_listen_mins', 'skip_percentage']
+TOP_ALBUM_COLUMN_ORDER = ['album_name', 'artist_name', 'unique_tracks',
+                'total_plays', 'plays_no_skips', 'total_minutes', 'mean_listen_mins', 'skip_percentage']
 
-def reorganiseColumns(df, column_order=COLUMN_ORDER):
-    df = df.loc[:, column_order]
+def reorganiseColumns(df, column_order=None):
+    if column_order is None:
+        return df
+    df = df.loc[:, column_order + [col for col in df.columns if col not in column_order]]
     return df
+
+# def round_df(df, decimal_places=2, columns=['total_minutes', 'mean_listen_mins', 'skip_percentage']):
+#     df[columns] = df[columns].map(f"{{:.{decimal_places}f}}".format)
+#     #df[columns] = df[columns].astype(float)
+#     #df[columns] = df[columns].round(decimal_places)
+#     return df
 
 def containsOne(df):
     unique_uris = df['spotify_track_uri'].nunique()
@@ -189,52 +200,6 @@ def aggregate_by(df, group_col, name_cols=None):
     
     return summary
 
-def artist_sum_stats(artist_df):
-    artist_df['ts'] = pd.to_datetime(artist_df['ts'])
-    artist_df = artist_df.sort_values('ts')
-    
-    tot_plays = len(artist_df)
-    tot_hours = artist_df['ms_played'].sum() / MS_HOUR_CONVERSION
-    unique_songs = artist_df['master_metadata_track_name'].nunique()
-    
-    first_row = artist_df.iloc[0]
-    last_row = artist_df.iloc[-1]
-    
-    artist_df['month_year'] = artist_df['ts'].dt.to_period('M')
-    peak_month = artist_df['month_year'].value_counts().idxmax()
-    peak_month_count = artist_df['month_year'].value_counts().max()
-
-    artist_df['date'] = artist_df['ts'].dt.to_period('D')
-    most_plays_in_day_date = artist_df['date'].value_counts().idxmax()
-    most_plays_in_day = artist_df['date'].value_counts().max()
-    
-    timespan = (artist_df['ts'].iloc[-1] - artist_df['ts'].iloc[0]).days
-    avg_plays_per_month = tot_plays / (max(timespan, 1) / DAYS_PER_MONTH)
-
-    years_active = artist_df['ts'].dt.year.nunique()
-    
-    actual_name = artist_df['master_metadata_album_artist_name'].iloc[0]
-    top_songs = pd.DataFrame(
-        artist_df['master_metadata_track_name'].value_counts().head(Config().top_n).reset_index()
-    )
-    top_songs.columns = ['Song', 'Listens']
-
-    return ArtistStats(
-        artist_name=actual_name,
-        tot_plays=tot_plays,
-        tot_hours=tot_hours,
-        unique_songs=unique_songs,
-        first_song_row=first_row,
-        last_song_row=last_row,
-        peak_month=peak_month,
-        peak_month_count=peak_month_count,
-        years_active=years_active,
-        top_songs=top_songs,
-        most_plays_in_day=most_plays_in_day,
-        most_plays_in_day_date=most_plays_in_day_date,
-        avg_plays_per_month=avg_plays_per_month
-    )
-
 def get_artist(df, artist, exact):
     return filter_dataframe(df, 'master_metadata_album_artist_name', artist, exact)
 
@@ -293,6 +258,7 @@ def get_top_n(df, sort_configs, n=5, min_plays_filter=None):
                 ascending=config.get('ascending', True)
             )
         
+        #sorted_df = round_df(sorted_df)
         results[key] = sorted_df.head(n)
     
     return results
@@ -302,7 +268,7 @@ def top_songs(df, show_uri=True, config=None):
         config = Config()
     
     song_sum = dfAnalytics(df)
-    song_sum = reorganiseColumns(song_sum)
+    song_sum = reorganiseColumns(song_sum, TOP_SONG_COLUMN_ORDER)
 
     if not show_uri:
         song_sum = song_sum.drop(columns=['spotify_track_uri'])
@@ -385,6 +351,275 @@ def top_artists(df, config=None):
         lowest_skip=top_results['lowest_skip'],
         highest_skip=top_results['highest_skip']
     )
+
+@st.cache_data
+def albumAnalytics(df):
+    base_agg = aggregate_by(
+        df,
+        group_col='master_metadata_album_album_name',
+        name_cols={
+            'unique_tracks': ('master_metadata_track_name', 'nunique'),
+            'artist_name': ('master_metadata_album_artist_name', 'first')   
+        }
+    )
+
+    base_agg = base_agg.rename(columns={'master_metadata_album_album_name': 'album_name'})
+
+    return base_agg
+
+def top_albums(df, config=None, single=False):
+    if config is None:
+        config = Config()
+    
+    album_sum = albumAnalytics(df)
+    album_sum = reorganiseColumns(album_sum, TOP_ALBUM_COLUMN_ORDER)
+
+    if single:
+        sort_configs = {
+            'by_plays': {'by': 'total_plays', 'ascending': False}
+        }
+        top_results = get_top_n(album_sum, sort_configs, n=len(album_sum), min_plays_filter=True)
+        return top_results['by_plays']
+    else:
+        sort_configs = {
+            'by_plays': {'by': 'total_plays', 'ascending': False},
+            'by_no_skips': {'by': 'plays_no_skips', 'ascending': False},
+            'by_time': {'by': 'total_minutes', 'ascending': False},
+            'by_diversity': {'by': 'unique_tracks', 'ascending': False},
+            'lowest_skip': {
+                'by': ['skip_percentage', 'total_plays'],
+                'ascending': [True, False],
+                'min_plays': config.min_plays_artist_skip_analysis
+            },
+            'highest_skip': {
+                'by': ['skip_percentage', 'total_plays'],
+                'ascending': [False, False],
+                'min_plays': config.min_plays_artist_skip_analysis
+            }
+        }
+        top_results = get_top_n(album_sum, sort_configs, n=Config.top_n, min_plays_filter=True)
+
+    return TopArtistResults(
+        all_data=album_sum,
+        by_plays=top_results['by_plays'],
+        by_no_skips=top_results['by_no_skips'],
+        by_time=top_results['by_time'],
+        by_diversity=top_results['by_diversity'],
+        lowest_skip=top_results['lowest_skip'],
+        highest_skip=top_results['highest_skip']
+    )
+
+def get_album_hist(df, album_name, exact=False):
+    album_hist = filter_dataframe(df, 'master_metadata_album_album_name', album_name, exact)
+    unique_albums = album_hist['master_metadata_album_album_name'].nunique()
+
+    if unique_albums > 2:
+        found_albums = (
+            album_hist.groupby('master_metadata_album_album_name')
+            .size()
+            .reset_index(name='Listens')
+            .rename(columns={
+                "master_metadata_album_album_name": "Album",
+            })
+        )
+        st.write(f"Found Multiple ({unique_albums}) Albums - please refine your search")
+        st.dataframe(found_albums.sort_values('Listens', ascending=False), width='stretch', hide_index=True)
+        return None
+    elif album_hist.empty:
+        st.write(f"Could not find an album containing '{album_name}'")
+        return None
+    else:
+        return album_hist
+    
+def artist_album_sum_stats(df, artist=False, album=False):
+    df['ts'] = pd.to_datetime(df['ts'])
+    df = df.sort_values('ts')
+    
+    tot_plays = len(df)
+    tot_hours = df['ms_played'].sum() / MS_HOUR_CONVERSION
+    unique_songs = df['master_metadata_track_name'].nunique()
+    unique_albums = df['master_metadata_album_album_name'].nunique()
+    
+    first_row = df.iloc[0]
+    last_row = df.iloc[-1]
+
+    df['month_year'] = df['ts'].dt.to_period('M')
+    peak_month = df['month_year'].value_counts().idxmax()
+    peak_month_count = df['month_year'].value_counts().max()
+
+    df['date'] = df['ts'].dt.to_period('D')
+    most_plays_in_day_date = df['date'].value_counts().idxmax()
+    most_plays_in_day = df['date'].value_counts().max()
+
+    timespan = (df['ts'].iloc[-1] - df['ts'].iloc[0]).days
+    avg_plays_per_month = tot_plays / (max(timespan, 1) / DAYS_PER_MONTH)
+
+    years_active = df['ts'].dt.year.nunique()
+
+    full_hist = df.groupby('master_metadata_track_name').agg({
+        'ts': 'count',
+        'ms_played': 'sum',
+        'master_metadata_album_album_name': 'first',
+        'skipped': lambda x: (x == False).sum()
+    }).reset_index().rename(columns={
+        'master_metadata_track_name': 'Song',
+        'ts': 'Listens',
+        'master_metadata_album_album_name': 'Album',
+        'skipped': 'Full Listens'
+    }).sort_values('Listens', ascending=False)
+    full_hist['Total Minutes'] = full_hist['ms_played'] / MS_MIN_CONVERSION
+    full_hist = full_hist.drop(columns=['ms_played'])
+    
+    
+    artist_name = df['master_metadata_album_artist_name'].iloc[0]
+    album_name = df['master_metadata_album_album_name'].iloc[0]
+    if artist:
+        full_hist = reorganiseColumns(full_hist, ['Song', 'Album', 'Listens', 'Full Listens', 'Total Minutes'])
+    elif album:
+        full_hist.drop(columns=['Album'], inplace=True)
+        full_hist = reorganiseColumns(full_hist, ['Song', 'Listens', 'Full Listens', 'Total Minutes'])
+    
+    top_songs = full_hist.head(Config().top_n)
+
+    return ArtistAlbumStats(
+        artist_name=artist_name,
+        album_name=album_name,
+        tot_plays=tot_plays,
+        tot_hours=tot_hours,
+        unique_songs=unique_songs,
+        unique_albums=unique_albums,
+        first_song_row=first_row,
+        last_song_row=last_row,
+        peak_month=peak_month,
+        peak_month_count=peak_month_count,
+        years_active=years_active,
+        top_songs=top_songs,
+        full_hist=full_hist,
+        most_plays_in_day=most_plays_in_day,
+        most_plays_in_day_date=most_plays_in_day_date,
+        avg_plays_per_month=avg_plays_per_month
+    )
+
+
+# def artist_sum_stats(artist_df):
+#     artist_df['ts'] = pd.to_datetime(artist_df['ts'])
+#     artist_df = artist_df.sort_values('ts')
+    
+#     tot_plays = len(artist_df)
+#     tot_hours = artist_df['ms_played'].sum() / MS_HOUR_CONVERSION
+#     unique_songs = artist_df['master_metadata_track_name'].nunique()
+#     unique_albums = artist_df['master_metadata_album_album_name'].nunique()
+    
+#     first_row = artist_df.iloc[0]
+#     last_row = artist_df.iloc[-1]
+    
+#     artist_df['month_year'] = artist_df['ts'].dt.to_period('M')
+#     peak_month = artist_df['month_year'].value_counts().idxmax()
+#     peak_month_count = artist_df['month_year'].value_counts().max()
+
+#     artist_df['date'] = artist_df['ts'].dt.to_period('D')
+#     most_plays_in_day_date = artist_df['date'].value_counts().idxmax()
+#     most_plays_in_day = artist_df['date'].value_counts().max()
+    
+#     timespan = (artist_df['ts'].iloc[-1] - artist_df['ts'].iloc[0]).days
+#     avg_plays_per_month = tot_plays / (max(timespan, 1) / DAYS_PER_MONTH)
+
+#     years_active = artist_df['ts'].dt.year.nunique()
+    
+#     actual_name = artist_df['master_metadata_album_artist_name'].iloc[0]
+
+#     full_hist = artist_df.groupby('master_metadata_track_name').agg({
+#         'ts': 'count',
+#         'ms_played': 'sum',
+#         'master_metadata_album_album_name': 'first',
+#         'skipped': lambda x: (x == False).sum()
+#     }).reset_index().rename(columns={
+#         'master_metadata_track_name': 'Song',
+#         'ts': 'Listens',
+#         'master_metadata_album_album_name': 'Album',
+#         'skipped': 'Full Listens'
+#     }).sort_values('Listens', ascending=False)
+#     full_hist['Total Minutes'] = full_hist['ms_played'] / MS_MIN_CONVERSION
+#     full_hist = full_hist.drop(columns=['ms_played'])
+#     full_hist = reorganiseColumns(full_hist, ['Song', 'Album', 'Listens', 'Full Listens', 'Total Minutes'])
+#     top_songs = full_hist.head(Config().top_n)
+
+#     return ArtistStats(
+#         artist_name=actual_name,
+#         tot_plays=tot_plays,
+#         tot_hours=tot_hours,
+#         unique_songs=unique_songs,
+#         unique_albums=unique_albums,
+#         first_song_row=first_row,
+#         last_song_row=last_row,
+#         peak_month=peak_month,
+#         peak_month_count=peak_month_count,
+#         years_active=years_active,
+#         top_songs=top_songs,
+#         full_hist=full_hist,
+#         most_plays_in_day=most_plays_in_day,
+#         most_plays_in_day_date=most_plays_in_day_date,
+#         avg_plays_per_month=avg_plays_per_month
+#     )
+
+
+# def album_sum_stats(album_df):
+#     album_df['ts'] = pd.to_datetime(album_df['ts'])
+#     album_df = album_df.sort_values('ts')
+    
+#     tot_plays = len(album_df)
+#     tot_hours = album_df['ms_played'].sum() / MS_HOUR_CONVERSION
+#     unique_songs = album_df['master_metadata_track_name'].nunique()
+
+#     first_row = album_df.iloc[0]
+#     last_row = album_df.iloc[-1]
+
+#     album_df['month_year'] = album_df['ts'].dt.to_period('M')
+#     peak_month = album_df['month_year'].value_counts().idxmax()
+#     peak_month_count = album_df['month_year'].value_counts().max()
+
+#     album_df['date'] = album_df['ts'].dt.to_period('D')
+#     most_plays_in_day_date = album_df['date'].value_counts().idxmax()
+#     most_plays_in_day = album_df['date'].value_counts().max()
+    
+#     timespan = (album_df['ts'].iloc[-1] - album_df['ts'].iloc[0]).days
+#     avg_plays_per_month = tot_plays / (max(timespan, 1) / DAYS_PER_MONTH)
+
+#     years_active = album_df['ts'].dt.year.nunique()
+    
+#     actual_name = album_df['master_metadata_album_album_name'].iloc[0]
+
+#     full_hist = album_df.groupby('master_metadata_track_name').agg({
+#         'ts': 'count',
+#         'ms_played': 'sum',
+#         'skipped': lambda x: (x == False).sum()
+#     }).reset_index().rename(columns={
+#         'master_metadata_track_name': 'Song',
+#         'ts': 'Listens',
+#         'skipped': 'Full Listens'
+#     }).sort_values('Listens', ascending=False)
+#     full_hist['Total Minutes'] = full_hist['ms_played'] / MS_MIN_CONVERSION
+#     full_hist = full_hist.drop(columns=['ms_played'])
+#     top_songs = full_hist.head(Config().top_n)
+
+#     return AlbumStats(
+#         album_name=actual_name,
+#         artist_name=album_df['master_metadata_album_artist_name'].iloc[0],
+#         tot_plays=tot_plays,
+#         tot_hours=tot_hours,
+#         unique_songs=unique_songs,
+#         first_song_row=first_row,
+#         last_song_row=last_row,
+#         peak_month=peak_month,
+#         peak_month_count=peak_month_count,
+#         years_active=years_active,
+#         top_songs=top_songs,
+#         full_hist=full_hist,
+#         most_plays_in_day=most_plays_in_day,
+#         most_plays_in_day_date=most_plays_in_day_date,
+#         avg_plays_per_month=avg_plays_per_month,
+#         unique_albums=0
+#     )
 
 @st.cache_data
 def get_data_for_polar_plots(df):

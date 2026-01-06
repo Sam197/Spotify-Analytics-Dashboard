@@ -34,24 +34,42 @@ def summary_song_markdown(data):
     ---
     """)
 
-def summary_artist_markdown(data):
+def summary_artist_album_markdown(data, artist=False, album=False):
 
-    table_rows = ""
-    for _, row in data.top_songs.iterrows():
-        table_rows += f"| {row['Song']} | {row['Listens']} |\n"
+    profile = "Artist" if artist else "Album"
 
+    if artist:
+        st.markdown(f"""
+        ### {profile} Profile: {data.artist_name}
+        ---
+        """)
+    else:
+        st.markdown(f"""
+        ### {profile} Profile: {data.album_name} by {data.artist_name}
+        ---
+        """)
+    if artist:
+        st.markdown(f"""
+        #### 📊 Career Statistics
+        | Metric | Value |
+        | :--- | :--- |
+        | **Total Time** | {data.tot_hours:.2f} Hours |
+        | **Total Plays** | {data.tot_plays} |
+        | **Unique Songs** | {data.unique_songs} |
+        | **Unique Albums** | {data.unique_albums} |
+        | **Loyalty** | Listened to in {data.years_active} different year(s) |
+        """)
+    else:
+        st.markdown(f"""
+        #### 📊 Career Statistics
+        | Metric | Value |
+        | :--- | :--- |
+        | **Total Time** | {data.tot_hours:.2f} Hours |
+        | **Total Plays** | {data.tot_plays} |
+        | **Unique Songs** | {data.unique_songs} |
+        | **Loyalty** | Listened to in {data.years_active} different year(s) |
+        """)
     st.markdown(f"""
-    ### 🎤 Artist Profile: {data.artist_name}
-    ---
-
-    #### 📊 Career Statistics
-    | Metric | Value |
-    | :--- | :--- |
-    | **Total Time** | {data.tot_hours:.2f} Hours |
-    | **Total Plays** | {data.tot_plays} |
-    | **Unique Songs** | {data.unique_songs} |
-    | **Loyalty** | Listened to in {data.years_active} different year(s) |
-
     ---
 
     #### 📅 Journey Timeline
@@ -72,3 +90,74 @@ def summary_artist_markdown(data):
     """
     )
     st.dataframe(data.top_songs, hide_index=True)
+
+# def summary_artist_markdown(data):
+
+#     st.markdown(f"""
+#     ### 🎤 Artist Profile: {data.artist_name}
+#     ---
+
+#     #### 📊 Career Statistics
+#     | Metric | Value |
+#     | :--- | :--- |
+#     | **Total Time** | {data.tot_hours:.2f} Hours |
+#     | **Total Plays** | {data.tot_plays} |
+#     | **Unique Songs** | {data.unique_songs} |
+#     | **Unique Albums** | {data.unique_albums} |
+#     | **Loyalty** | Listened to in {data.years_active} different year(s) |
+
+#     ---
+
+#     #### 📅 Journey Timeline
+#     * **First Listen:** `{data.first_song_row['ts'].strftime('%Y-%m-%d')}`  
+#     ↳ *Song:* {data.first_song_row['master_metadata_track_name']}
+#     * **Last Listen:** `{data.last_song_row['ts'].strftime('%Y-%m-%d')}`  
+#     ↳ *Song:* {data.last_song_row['master_metadata_track_name']}
+
+#     ---
+
+#     #### ⚡ Engagement
+#     * **Binge Factor:** {data.most_plays_in_day} plays in a single day (on {data.most_plays_in_day_date})
+#     * **Monthly Velocity:** {data.avg_plays_per_month:.2f} plays/month
+#     * **Peak Month:** {MONTHS[data.peak_month.month]} {data.peak_month.year} ({data.peak_month_count} plays)
+
+#     ---
+#     #### 🎵 Top Songs
+#     """
+#     )
+#     st.dataframe(data.top_songs, hide_index=True)
+
+# def summary_album_markdown(data):
+
+#     st.markdown(f"""
+#     ### Album Profile: {data.album_name} by {data.artist_name}
+#     ---
+
+#     #### 📊 Career Statistics
+#     | Metric | Value |
+#     | :--- | :--- |
+#     | **Total Time** | {data.tot_hours:.2f} Hours |
+#     | **Total Plays** | {data.tot_plays} |
+#     | **Unique Songs** | {data.unique_songs} |
+#     | **Loyalty** | Listened to in {data.years_active} different year(s) |
+
+#     ---
+
+#     #### 📅 Journey Timeline
+#     * **First Listen:** `{data.first_song_row['ts'].strftime('%Y-%m-%d')}`  
+#     ↳ *Song:* {data.first_song_row['master_metadata_track_name']}
+#     * **Last Listen:** `{data.last_song_row['ts'].strftime('%Y-%m-%d')}`  
+#     ↳ *Song:* {data.last_song_row['master_metadata_track_name']}
+
+#     ---
+
+#     #### ⚡ Engagement
+#     * **Binge Factor:** {data.most_plays_in_day} plays in a single day (on {data.most_plays_in_day_date})
+#     * **Monthly Velocity:** {data.avg_plays_per_month:.2f} plays/month
+#     * **Peak Month:** {MONTHS[data.peak_month.month]} {data.peak_month.year} ({data.peak_month_count} plays)
+
+#     ---
+#     #### 🎵 Top Songs
+#     """
+#     )
+#     st.dataframe(data.top_songs, hide_index=True)

@@ -103,20 +103,6 @@ def make_polar_plots(data, config=POLAR_PLOTS_DEFULTS):
         plots[time_period] = fig
     return plots
 
-# def make_polar_plots(dfs, config=POLAR_PLOTS_DEFULTS):
-#     plots = {}
-#     for key, params in config.items():
-#         df = dfs[params['dftitle']]
-#         fig = make_polar_plot(
-#             df,
-#             theta=params['theta'],
-#             r=params['r'],
-#             title=params['title'],
-#             labels=params['labels']
-#         )
-#         plots[key] = fig
-#     return plots
-
 def plot_polar_plots(plots):
     cols = st.columns(len(plots))
     figs = list(plots.values())

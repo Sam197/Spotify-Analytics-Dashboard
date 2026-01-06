@@ -17,7 +17,7 @@ You can download your current dataset as a Parquet file for faster loading next 
 Simply provide a filename (without extension), hit enter, and click the download button.
 """
 
-st.set_page_config(page_title="Music Analytics", layout="wide")
+st.set_page_config(page_title="Music Analytics", layout="wide", page_icon='logo.jpg')
 
 #st.logo('Data from backscatter.png', size='large')
 if 'data' not in st.session_state:
@@ -26,6 +26,8 @@ if 'data' not in st.session_state:
 if 'page' not in st.session_state:
     st.session_state.page = 'Upload'
 if st.session_state.data is not None:
+    st.logo('logo.jpg', size='large')
+    st.sidebar.title("Navigate")
     page = st.sidebar.radio("Navigate", ['Upload', 'Home', 'Track', 'Artist', 'Album'])
     st.session_state.page = page
     st.sidebar.markdown("Checkout the [GitHub Repository](https://github.com/Sam197/Spotify-Analytics-Dashboard)!")
@@ -165,9 +167,9 @@ if st.session_state.page == "Home":
     st.dataframe(top_songs.by_minutes, hide_index=True)
     st.write(f"Top {models.Config.top_n} songs by average listen time")
     st.dataframe(top_songs.by_mean_minutes, hide_index=True)
-    st.write(f"Top {models.Config.top_n} songs by lowest skip percentage (where a song has at least 20 plays)")
+    st.write(f"Top {models.Config.top_n} songs by lowest skip percentage (where a song has at least {models.Config.min_plays_skip_analysis} plays)")
     st.dataframe(top_songs.lowest_skip, hide_index=True)
-    st.write(f"Top {models.Config.top_n} songs by highest skip percentage (where a song has at least 20 plays)")
+    st.write(f"Top {models.Config.top_n} songs by highest skip percentage (where a song has at least {models.Config.min_plays_skip_analysis} plays)")
     st.dataframe(top_songs.highest_skip, hide_index=True)
     st.divider()
     st.write(f"Full song summary statistics for period {start_date.date()} to {end_date.date()}")
@@ -186,20 +188,43 @@ if st.session_state.page == "Home":
     st.dataframe(top_artists.by_time, hide_index=True)
     st.write(f"Top {models.Config.top_n} artists by number of unique songs listened to")
     st.dataframe(top_artists.by_diversity, hide_index=True)
-    st.write(f"Top {models.Config.top_n} artists with lowest skip percentage (where an artist has at least 100 plays)")
+    st.write(f"Top {models.Config.top_n} artists with lowest skip percentage (where an artist has at least {models.Config.min_plays_artist_skip_analysis} plays)")
     st.dataframe(top_artists.lowest_skip, hide_index=True)
-    st.write(f"Top {models.Config.top_n} artists with highest skip percentage (where an artist has at least 100 plays)")
+    st.write(f"Top {models.Config.top_n} artists with highest skip percentage (where an artist has at least {models.Config.min_plays_artist_skip_analysis} plays)")
     st.dataframe(top_artists.highest_skip, hide_index=True)
     st.divider()
     st.write(f"Full artist summary statistics for period {start_date.date()} to {end_date.date()}")
     st.dataframe(top_artists.all_data, hide_index=True)
 
+    st.divider()
+    st.title("Albums")
+    st.write(f"Encompassing date range from {start_date.date()} to {end_date.date()}")
+    
+    top_albums = analyticsFuncs.top_albums(filtered_df)
+    st.write(f"Top {models.Config.top_n} albums by number of plays")
+    st.dataframe(top_albums.by_plays, hide_index=True)
+    st.write(f"Top {models.Config.top_n} albums by number of full plays (no skips)")
+    st.dataframe(top_albums.by_no_skips, hide_index=True)
+    st.write(f"Top {models.Config.top_n} albums by minutes listened to")
+    st.dataframe(top_albums.by_time, hide_index=True)
+    st.write(f"Top {models.Config.top_n} albums by number of unique songs listened to")
+    st.dataframe(top_albums.by_diversity, hide_index=True)
+    st.write(f"Top {models.Config.top_n} albums with lowest skip percentage (where an artist has at least {models.Config.min_plays_artist_skip_analysis} plays)")
+    st.dataframe(top_albums.lowest_skip, hide_index=True)
+    st.write(f"Top {models.Config.top_n} albums with highest skip percentage (where an artist has at least {models.Config.min_plays_artist_skip_analysis} plays)")
+    st.dataframe(top_albums.highest_skip, hide_index=True)
+    st.divider()
+    st.write(f"Full album summary statistics for period {start_date.date()} to {end_date.date()}")
+    st.dataframe(top_albums.all_data, hide_index=True)
+
 elif st.session_state.page == 'Track':
+
     st.title("Looking for a Specific Track?")
     search_keyword = st.text_input("Start Searching for a Song", placeholder="Enter a Song Title")
     artist, album = "", ""
     col1, col2, col3 = st.columns(3)
     song_history = None
+
     with col1:
         exact = st.checkbox("Exact Match?")
     with col2:
@@ -210,6 +235,7 @@ elif st.session_state.page == 'Track':
         artist = st.text_input("Artist Name", placeholder="Enter Artist Name")
     if albumEntry:
         album = st.text_input("Album Name", placeholder="Enter Album Name")
+
     if search_keyword != "":
         song_history = analyticsFuncs.get_song_stats(st.session_state.data, search_keyword, exact=exact, artist=artist, album=album)
         print(song_history)
@@ -222,25 +248,36 @@ elif st.session_state.page == 'Track':
         time_dfs = analyticsFuncs.get_data_for_polar_plots(song_history)
         polar_plots = plots.make_polar_plots(time_dfs)
         plots.plot_polar_plots(polar_plots)
-        if st.checkbox("See Full Listening History for this Song?"):
+        if st.checkbox("See Full Listening History for this Song?", help="This shows all times this song was listened to, drawn straight from your raw Spotify data."):
             st.dataframe(song_history, hide_index=True)
 
 elif st.session_state.page == 'Artist':
+
     st.title("Looking for a Specific Artist?")
     search_keyword = st.text_input("Start Searching for an Artist", placeholder="Enter an Artist's Name")
     exact = st.checkbox("Exact Match?")
     artist_hist = None
+
     if search_keyword != "":
         artist_hist = analyticsFuncs.get_artist_hist(st.session_state.data, search_keyword, exact=exact)
         if artist_hist is not None:
-            artist_sum_stats = analyticsFuncs.artist_sum_stats(artist_hist)
-            markdown.summary_artist_markdown(artist_sum_stats)
-    if artist_hist is not None and artist_sum_stats.unique_songs > models.Config.top_n:
-        see_all_songs = st.checkbox(f"See all songs? ({artist_sum_stats.unique_songs})")
-        artist_hist_full = artist_hist['master_metadata_track_name'].value_counts().reset_index()
-        artist_hist_full.columns = ['Song', 'Listens']
-        if see_all_songs:
-            st.dataframe(artist_hist_full, hide_index=True)
+            artist_sum_stats = analyticsFuncs.artist_album_sum_stats(artist_hist, artist=True)
+            markdown.summary_artist_album_markdown(artist_sum_stats, artist=True)
+
+            if artist_sum_stats.unique_songs > models.Config.top_n:
+                see_all_songs = st.checkbox(f"See all songs? ({artist_sum_stats.unique_songs})")
+                if see_all_songs:
+                    st.dataframe(artist_sum_stats.full_hist, hide_index=True)
+    
+            top_albums_for_artist = analyticsFuncs.top_albums(artist_hist, single=True)
+            top_albums_for_artist.drop(columns=['artist_name'], inplace=True)
+            st.subheader("Top Albums for this Artist")
+            st.write(f"Top {models.Config.top_n} albums by number of plays")
+            st.dataframe(top_albums_for_artist.head(models.Config.top_n), hide_index=True)
+            if artist_sum_stats.unique_albums > models.Config.top_n:
+                see_all_albums = st.checkbox(f"See all albums? ({artist_sum_stats.unique_albums})")
+                if see_all_albums:
+                    st.dataframe(top_albums_for_artist, hide_index=True)
         
         plots.make_mins_and_streams_plots(artist_hist)
 
@@ -252,8 +289,36 @@ elif st.session_state.page == 'Artist':
         plots.plot_polar_plots(polar_plots)
 
     if artist_hist is not None:
-        if st.checkbox("See Full Listening History for this Artist?"):
+        if st.checkbox("See Full Listening History for this Artist?", help="This shows all times a song from this artist was listened to, drawn straight from your raw Spotify data."):
             st.dataframe(artist_hist, hide_index=True)
 
 elif st.session_state.page == 'Album':
-    st.title("Looks like I have not implemented this yet. Whoops")
+
+    st.title("Looking for a Specific Album?")
+    search_keyword = st.text_input("Start Searching for an Album", placeholder="Enter an Album Name")
+    exact = st.checkbox("Exact Match?")
+    album_hist = None
+
+    if search_keyword != "":
+        album_hist = analyticsFuncs.get_album_hist(st.session_state.data, search_keyword, exact=exact)
+        if album_hist is not None:
+            album_sum_stats = analyticsFuncs.artist_album_sum_stats(album_hist, album=True)
+            markdown.summary_artist_album_markdown(album_sum_stats, album=True)
+
+    if album_hist is not None and album_sum_stats.unique_songs > models.Config.top_n:
+        see_all_songs = st.checkbox(f"See all songs? ({album_sum_stats.unique_songs})")
+        if see_all_songs:
+            st.dataframe(album_sum_stats.full_hist, hide_index=True)
+        
+        plots.make_mins_and_streams_plots(album_hist)
+
+        st.divider()
+        st.subheader("When did you listen?")
+        st.write(f"For the time period {album_hist['ts'].min().date()} to {album_hist['ts'].max().date()}")
+        time_dfs = analyticsFuncs.get_data_for_polar_plots(album_hist)
+        polar_plots = plots.make_polar_plots(time_dfs)
+        plots.plot_polar_plots(polar_plots)
+
+    if album_hist is not None:
+        if st.checkbox("See Full Listening History for this Album?", help="This shows all times a song from this album was listened to, drawn straight from your raw Spotify data."):
+            st.dataframe(album_hist, hide_index=True)
