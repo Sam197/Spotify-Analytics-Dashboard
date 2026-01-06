@@ -89,6 +89,9 @@ if st.session_state.page == 'Upload' or st.session_state.data is None:
                 file_name="my_spotify_data.parquet" if filename == "" else f"{filename}.parquet",
                 mime="application/octet-stream"
             )
+            st.divider()
+            st.subheader("Your Data")
+            st.dataframe(st.session_state.data)
 
 if st.session_state.page == "Home":
     df = st.session_state.data
