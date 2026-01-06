@@ -19,7 +19,6 @@ Simply provide a filename (without extension), hit enter, and click the download
 
 st.set_page_config(page_title="Music Analytics", layout="wide", page_icon='logo.jpg')
 
-#st.logo('Data from backscatter.png', size='large')
 if 'data' not in st.session_state:
     st.session_state.data = None
     st.session_state.has_inital_data = False
@@ -282,14 +281,14 @@ elif st.session_state.page == 'Artist':
                 if see_all_albums:
                     st.dataframe(top_albums_for_artist, hide_index=True)
         
-        plots.make_mins_and_streams_plots(artist_hist)
+            plots.make_mins_and_streams_plots(artist_hist)
 
-        st.divider()
-        st.subheader("When did you listen?")
-        st.write(f"For the time period {artist_hist['ts'].min().date()} to {artist_hist['ts'].max().date()}")
-        time_dfs = analyticsFuncs.get_data_for_polar_plots(artist_hist)
-        polar_plots = plots.make_polar_plots(time_dfs)
-        plots.plot_polar_plots(polar_plots)
+            st.divider()
+            st.subheader("When did you listen?")
+            st.write(f"For the time period {artist_hist['ts'].min().date()} to {artist_hist['ts'].max().date()}")
+            time_dfs = analyticsFuncs.get_data_for_polar_plots(artist_hist)
+            polar_plots = plots.make_polar_plots(time_dfs)
+            plots.plot_polar_plots(polar_plots)
 
     if artist_hist is not None:
         if st.checkbox("See Full Listening History for this Artist?", help="This shows all times a song from this artist was listened to, drawn straight from your raw Spotify data."):
