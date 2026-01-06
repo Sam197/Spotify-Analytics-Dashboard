@@ -1,4 +1,3 @@
-from matplotlib import artist
 import streamlit as st
 import pandas as pd
 from models import *

@@ -1,7 +1,5 @@
 import streamlit as st
 import plotly.express as px
-import pandas as pd
-import numpy as np
 from analyticsFuncs import MS_MIN_CONVERSION
 
 POLAR_PLOTS_DEFULTS = {
