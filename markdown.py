@@ -64,7 +64,7 @@ def summary_artist_album_markdown(data, artist=False, album=False):
         #### 📊 Career Statistics
         | Metric | Value |
         | :--- | :--- |
-        | **Total Time** | {data.tot_hours:.2f} Hours |
+        | **Total Time** | {data.tot_mins:.2f} Minutes |
         | **Total Plays** | {data.tot_plays} |
         | **Unique Songs** | {data.unique_songs} |
         | **Loyalty** | Listened to in {data.years_active} different year(s) |

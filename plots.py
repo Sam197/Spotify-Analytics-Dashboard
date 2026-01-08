@@ -108,7 +108,7 @@ def plot_polar_plots(plots):
     for i, col in enumerate(cols):
         with col:
             st.plotly_chart(figs[i], width='stretch', key=f'polar_plot_{i}')
-            
+
 #TODO Refactor this into one function - best to do after sorted out the artist top songs top album mismatch
 
 def make_pie_chart_track(df, max_elements = 10):
@@ -126,7 +126,7 @@ def make_pie_chart_track(df, max_elements = 10):
         data,
         values = 'Total Minutes',
         names = 'Song',
-        title = 'Listening Distribution by Song',
+        title = 'Listening Distribution by Song (by minutes listened to)',
     )
     fig.update_traces(textposition='inside', textinfo='percent+label', sort=False, rotation=0, direction='clockwise')
     return fig
@@ -149,7 +149,7 @@ def make_pie_chart_album(df, max_elements = 10):
         data,
         values = 'Total Minutes',
         names = 'Album',
-        title = f'Listening Distribution by Album',
+        title = f'Listening Distribution by Album (by minutes listened to)',
     )
     fig.update_traces(textposition='inside', textinfo='percent+label', sort=False, rotation=0, direction='clockwise')
     return fig
