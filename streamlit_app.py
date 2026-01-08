@@ -263,7 +263,7 @@ elif st.session_state.page == 'Track':
         if albumEntry:
             album = st.text_input("Album Name", placeholder="Enter Album Name")
     with col4:
-        if st.button('Surprise Me!'):
+        if st.button('Surprise Me!', help="Choose a random Song that you have listened to to look at! Biased towards number of plays"):
             search_keyword, artist, _ = analyticsFuncs.random_play(st.session_state.data)
             exact = True
 
@@ -292,7 +292,7 @@ elif st.session_state.page == 'Artist':
     with col1:
         exact = st.checkbox("Exact Match?")
     with col2:
-        if st.button("Surprise Me!"):
+        if st.button("Surprise Me!",  help="Choose a random Artitst that you have listened to to look at! Biased towards number of plays"):
             _, artist, _ = analyticsFuncs.random_play(st.session_state.data)
             search_keyword = artist
             exact = True
@@ -345,7 +345,7 @@ elif st.session_state.page == 'Album':
         exact = st.checkbox("Exact Match?")
     with col2:
         if st.button("Surprise Me!"):
-            _, _, album = analyticsFuncs.random_play(st.session_state.data)
+            _, _, album = analyticsFuncs.random_play(st.session_state.data,  help="Choose a random Album that you have listened to to look at! Biased towards number of plays")
             search_keyword = album
             exact = True
     album_hist = None
