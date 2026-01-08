@@ -441,7 +441,7 @@ def artist_album_sum_stats(df, artist=False, album=False):
     df = df.sort_values('ts')
     
     tot_plays = len(df)
-    tot_hours = df['ms_played'].sum() / MS_HOUR_CONVERSION
+    tot_mins = df['ms_played'].sum() / MS_MIN_CONVERSION
     unique_songs = df['master_metadata_track_name'].nunique()
     unique_albums = df['master_metadata_album_album_name'].nunique()
     
@@ -490,7 +490,7 @@ def artist_album_sum_stats(df, artist=False, album=False):
         artist_name=artist_name,
         album_name=album_name,
         tot_plays=tot_plays,
-        tot_hours=tot_hours,
+        tot_mins=tot_mins,
         unique_songs=unique_songs,
         unique_albums=unique_albums,
         first_song_row=first_row,

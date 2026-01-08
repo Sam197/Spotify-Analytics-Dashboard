@@ -40,7 +40,7 @@ class ArtistAlbumStats:
     artist_name: str
     album_name: str
     tot_plays: int
-    tot_hours: float
+    tot_mins: float
     unique_songs: int
     unique_albums: int
     first_song_row: pd.Series

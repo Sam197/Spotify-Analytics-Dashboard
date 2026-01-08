@@ -295,6 +295,8 @@ elif st.session_state.page == 'Artist':
                 see_all_songs = st.checkbox(f"See all songs? ({artist_sum_stats.unique_songs})")
                 if see_all_songs:
                     st.dataframe(artist_sum_stats.full_hist, hide_index=True)
+
+            st.plotly_chart(plots.make_pie_chart_track(artist_sum_stats.full_hist), width='stretch')
     
             top_albums_for_artist = analyticsFuncs.top_albums(artist_hist, single=True)
             top_albums_for_artist.drop(columns=['artist_name'], inplace=True)
@@ -305,6 +307,8 @@ elif st.session_state.page == 'Artist':
                 see_all_albums = st.checkbox(f"See all albums? ({artist_sum_stats.unique_albums})")
                 if see_all_albums:
                     st.dataframe(top_albums_for_artist, hide_index=True)
+            
+            st.plotly_chart(plots.make_pie_chart_album(top_albums_for_artist), width='stretch')
         
             plots.make_mins_and_streams_plots(artist_hist)
 
