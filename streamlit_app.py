@@ -67,7 +67,7 @@ if st.session_state.page == 'Upload' or st.session_state.data is None:
         
         if not st.session_state.has_inital_data:
             st.write("Loading Landing Page!")
-        st.dataframe(st.session_state.data, hide_index=True)
+
         if not st.session_state.has_inital_data:
             st.session_state.has_inital_data = True
             st.rerun()
@@ -76,36 +76,38 @@ if st.session_state.page == 'Upload' or st.session_state.data is None:
             st.info("Please upload .json files, or a .parquet file to begin analysis")
         else:
             st.info("You can analyse different data if you upload new stuff here!")
-            st.write("Do you want to save the loaded dataset for quicker uploads next time?")
 
-            buffer = io.BytesIO()
-            st.session_state.data.to_parquet(buffer, index=False)
-            col1, col2 = st.columns([5,1])
-            with col1:
-                filename = st.text_input("Enter filename to save as (without extension)", placeholder="my_spotify_data", help=DOWNLOAD_FILE_HELP_TEXT)
-            with col2:
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.write("**.parquet**  ")
-            
-            if not filename:
-                final_filename = "my_spotify_data.parquet"
+    if st.session_state.has_inital_data:
+        st.write("Do you want to save the loaded dataset for quicker uploads next time?")
+
+        buffer = io.BytesIO()
+        st.session_state.data.to_parquet(buffer, index=False)
+        col1, col2 = st.columns([5,1])
+        with col1:
+            filename = st.text_input("Enter filename to save as (without extension)", placeholder="my_spotify_data", help=DOWNLOAD_FILE_HELP_TEXT)
+        with col2:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.write("**.parquet**  ")
+        
+        if not filename:
+            final_filename = "my_spotify_data.parquet"
+        else:
+            # Check if they accidentally typed the extension anyway
+            if filename.endswith(".parquet"):
+                final_filename = filename
             else:
-                # Check if they accidentally typed the extension anyway
-                if filename.endswith(".parquet"):
-                    final_filename = filename
-                else:
-                    final_filename = f"{filename}.parquet"
+                final_filename = f"{filename}.parquet"
 
-            st.download_button(
-                "Download Current Dataset",
-                data=buffer.getvalue(),
-                file_name=final_filename,
-                mime="application/octet-stream"
-            )
+        st.download_button(
+            "Download Current Dataset",
+            data=buffer.getvalue(),
+            file_name=final_filename,
+            mime="application/octet-stream"
+        )
 
-            st.divider()
-            st.subheader("Your Data")
-            st.dataframe(st.session_state.data)
+        st.divider()
+        st.subheader("Your Data")
+        st.dataframe(st.session_state.data)
 
 if st.session_state.page == "Home":
     df = st.session_state.data
@@ -144,13 +146,15 @@ if st.session_state.page == "Home":
         st.metric("Skip Percentage", f"{(basic_stats.skip_percentage*100):.2f}%")
     with col4:
         st.metric("Total Listening Time", f"{basic_stats.total_minutes:.2f} minutes")
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Unique Songs", basic_stats.unique_tracks)
     with col2:
         st.metric("Unique Artists", basic_stats.unique_artists)
     with col3:
         st.metric("Unique Albums", basic_stats.unique_albums)
+    with col4:
+        st.metric("On average each song is played", f"{(basic_stats.total_plays/basic_stats.unique_tracks):.2f} times")
 
     col1, col2 = st.columns(2)
     first_last_play = analyticsFuncs.firstLastPlay(filtered_df)
