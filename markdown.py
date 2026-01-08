@@ -22,7 +22,7 @@ def summary_song_markdown(data):
     | **Total Plays** | {data.tot_plays} |
     | **Full Listens** | {data.full_plays} |
     | **Skips** | {data.tot_skips} ({100 - data.listen_rate:.1f}% skip rate) |
-    | **Total Time** | {data.tot_hours:.2f} hours |
+    | **Total Time** | {data.tot_mins:.2f} Minutes |
 
     ---
 

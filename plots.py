@@ -110,13 +110,21 @@ def plot_polar_plots(plots):
             st.plotly_chart(figs[i], width='stretch', key=f'polar_plot_{i}')
 
 #TODO Refactor this into one function - best to do after sorted out the artist top songs top album mismatch
+spotify_palette = [
+    "#0C7230", '#8D67AB', '#19E3E0', '#E91E63', '#4587F7', 
+    '#FF5722', '#00897B', '#F4C430', '#3F51B5', '#607D8B'
+]
 
-def make_pie_chart_track(df, max_elements = 10):
-    df = df.drop(columns=['Listens', 'Full Listens', 'Album'])
+def make_pie_chart_track(df, max_elements = 10, album=False):
+    if album:
+        cols = ['Listens', 'Full Listens']
+    else:
+        cols = ['Listens', 'Full Listens', 'Album']
+    df = df.drop(columns=cols)
     tot_mins = df['Total Minutes'].sum()
     df = df.sort_values('Total Minutes', ascending=False)
     if len(df) > max_elements:
-        data = df.head(max_elements)
+        data = df.head(max_elements-1)
         other_row = {'Song': 'Others', 'Total Minutes': (tot_mins-data['Total Minutes'].sum())}
         data = pd.concat([data, pd.DataFrame([other_row])], ignore_index=True)
     else:
@@ -127,6 +135,7 @@ def make_pie_chart_track(df, max_elements = 10):
         values = 'Total Minutes',
         names = 'Song',
         title = 'Listening Distribution by Song (by minutes listened to)',
+        color_discrete_sequence=spotify_palette
     )
     fig.update_traces(textposition='inside', textinfo='percent+label', sort=False, rotation=0, direction='clockwise')
     return fig
@@ -139,7 +148,7 @@ def make_pie_chart_album(df, max_elements = 10):
     df = df.sort_values('Total Minutes', ascending=False)
 
     if len(df) > max_elements:
-        data = df.head(max_elements)
+        data = df.head(max_elements-1)
         other_row = {'Album': 'Others', 'Total Minutes': (tot_mins-data['Total Minutes'].sum())}
         data = pd.concat([data, pd.DataFrame([other_row])], ignore_index=True)
     else:

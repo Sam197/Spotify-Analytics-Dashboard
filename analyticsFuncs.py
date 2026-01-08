@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from models import *
+import numpy as np
 
 MS_MIN_CONVERSION = 60000
 MS_HOUR_CONVERSION = 3600000
@@ -32,7 +33,7 @@ def containsOne(df):
                 'master_metadata_album_artist_name'
             ])
             .agg({
-                'master_metadata_album_album_name': 'first',
+                'master_metadata_album_album_name': lambda x: x.value_counts().idxmax(),
                 'spotify_track_uri': 'count'
             })
             .reset_index()
@@ -69,7 +70,7 @@ def song_sum_stats(df):
     full_plays = tot_plays - tot_skips
     listen_rate = (full_plays / tot_plays) * 100 if tot_plays > 0 else 0
     
-    tot_hours = df['ms_played'].sum() / MS_HOUR_CONVERSION
+    tot_mins = df['ms_played'].sum() / MS_MIN_CONVERSION
     avg_plays_per_month = tot_plays / (max(timespan, 1) / DAYS_PER_MONTH)
     
     df['month_year'] = df['ts'].dt.to_period('M')
@@ -91,7 +92,7 @@ def song_sum_stats(df):
         tot_skips=tot_skips,
         full_plays=full_plays,
         listen_rate=listen_rate,
-        tot_hours=tot_hours,
+        tot_mins=tot_mins,
         avg_plays_per_month=avg_plays_per_month,
         most_plays_in_day=most_plays_in_day,
         most_plays_in_day_date=most_plays_in_day_date,
@@ -142,6 +143,15 @@ def get_song_stats(df, song_name, exact=False, artist=None, album=None):
     song_history['ts'] = pd.to_datetime(song_history['ts'])
     song_history = song_history.sort_values('ts')
     return song_history
+
+def random_play(df):
+    random_row = df.sample()
+    print(random_row)
+    random = (random_row['master_metadata_track_name'].iloc[0],
+              random_row['master_metadata_album_artist_name'].iloc[0],
+              random_row['master_metadata_album_album_name'].iloc[0])
+    print(random)
+    return random
 
 def firstLastPlay(df):
     df = df.sort_values('ts')

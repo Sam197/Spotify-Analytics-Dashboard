@@ -28,7 +28,7 @@ class SongStats:
     tot_skips: int
     full_plays: int
     listen_rate: float
-    tot_hours: float
+    tot_mins: float
     avg_plays_per_month: float
     most_plays_in_day: int
     most_plays_in_day_date: pd.Period

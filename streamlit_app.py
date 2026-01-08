@@ -249,21 +249,27 @@ elif st.session_state.page == 'Track':
     st.title("Looking for a Specific Track?")
     search_keyword = st.text_input("Start Searching for a Song", placeholder="Enter a Song Title")
     artist, album = "", ""
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     song_history = None
 
     with col1:
-        exact = st.checkbox("Exact Match?")
+        exact = st.checkbox("Exact Match?", help="Looks for an exact match, your search phrase needs to exactly match what you are looking for")
     with col2:
-        artistEntry = st.checkbox("Refine With Artist?")
+        artistEntry = st.checkbox("Refine With Artist?", help='Add an artist to refine your search. Will return all times this song has been listened to')
+        if artistEntry:
+            artist = st.text_input("Artist Name", placeholder="Enter Artist Name")
     with col3:
-        albumEntry = st.checkbox("Refine With Album?")
-    if artistEntry:
-        artist = st.text_input("Artist Name", placeholder="Enter Artist Name")
-    if albumEntry:
-        album = st.text_input("Album Name", placeholder="Enter Album Name")
+        albumEntry = st.checkbox("Refine With Album?", help='Will return all times the song as been listened to as part of the album. If a song is listend to across different albums, the numbers you see could be different')
+        if albumEntry:
+            album = st.text_input("Album Name", placeholder="Enter Album Name")
+    with col4:
+        if st.button('Surprise Me!'):
+            search_keyword, artist, _ = analyticsFuncs.random_play(st.session_state.data)
+            exact = True
 
     if search_keyword != "":
+        #When looking for a song, if multiple it will show the correct collated listens across all albums, but when filtering, it can be wrong
+        #E.g. try radioactive my imagine dragons
         song_history = analyticsFuncs.get_song_stats(st.session_state.data, search_keyword, exact=exact, artist=artist, album=album)
         print(song_history)
     if song_history is not None:
@@ -282,7 +288,14 @@ elif st.session_state.page == 'Artist':
 
     st.title("Looking for a Specific Artist?")
     search_keyword = st.text_input("Start Searching for an Artist", placeholder="Enter an Artist's Name")
-    exact = st.checkbox("Exact Match?")
+    col1, col2 = st.columns(2)
+    with col1:
+        exact = st.checkbox("Exact Match?")
+    with col2:
+        if st.button("Surprise Me!"):
+            _, artist, _ = analyticsFuncs.random_play(st.session_state.data)
+            search_keyword = artist
+            exact = True
     artist_hist = None
 
     if search_keyword != "":
@@ -327,7 +340,14 @@ elif st.session_state.page == 'Album':
 
     st.title("Looking for a Specific Album?")
     search_keyword = st.text_input("Start Searching for an Album", placeholder="Enter an Album Name")
-    exact = st.checkbox("Exact Match?")
+    col1, col2 = st.columns(2)
+    with col1:
+        exact = st.checkbox("Exact Match?")
+    with col2:
+        if st.button("Surprise Me!"):
+            _, _, album = analyticsFuncs.random_play(st.session_state.data)
+            search_keyword = album
+            exact = True
     album_hist = None
 
     if search_keyword != "":
@@ -340,6 +360,9 @@ elif st.session_state.page == 'Album':
         see_all_songs = st.checkbox(f"See all songs? ({album_sum_stats.unique_songs})")
         if see_all_songs:
             st.dataframe(album_sum_stats.full_hist, hide_index=True)
+        
+    if album_hist is not None:
+        st.plotly_chart(plots.make_pie_chart_track(album_sum_stats.full_hist, album=True), width='stretch')
         
         plots.make_mins_and_streams_plots(album_hist)
 
