@@ -167,12 +167,18 @@ def basicStats(df):
     total_plays_no_skips = len(df[df['skipped'] == False])
     skip_percentage = 1 - (total_plays_no_skips / total_plays)
     total_minutes = df['ms_played'].sum() / MS_MIN_CONVERSION
+    unique_songs = df['master_metadata_track_name'].nunique()
+    unique_artists = df['master_metadata_album_artist_name'].nunique()
+    unique_albums = df['master_metadata_album_album_name'].nunique()
     
     return BasicStats(
         total_plays=total_plays,
         total_plays_no_skips=total_plays_no_skips,
         skip_percentage=skip_percentage,
-        total_minutes=total_minutes
+        total_minutes=total_minutes,
+        unique_tracks=unique_songs,
+        unique_artists=unique_artists,
+        unique_albums=unique_albums
     )
 
 @st.cache_data

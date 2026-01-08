@@ -80,31 +80,49 @@ if st.session_state.page == 'Upload' or st.session_state.data is None:
 
             buffer = io.BytesIO()
             st.session_state.data.to_parquet(buffer, index=False)
+            col1, col2 = st.columns([5,1])
+            with col1:
+                filename = st.text_input("Enter filename to save as (without extension)", placeholder="my_spotify_data", help=DOWNLOAD_FILE_HELP_TEXT)
+            with col2:
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.write("**.parquet**  ")
+            
+            if not filename:
+                final_filename = "my_spotify_data.parquet"
+            else:
+                # Check if they accidentally typed the extension anyway
+                if filename.endswith(".parquet"):
+                    final_filename = filename
+                else:
+                    final_filename = f"{filename}.parquet"
 
-            filename = st.text_input("Enter filename to save as (without extension)", placeholder="my_spotify_data", help=DOWNLOAD_FILE_HELP_TEXT)
             st.download_button(
                 "Download Current Dataset",
                 data=buffer.getvalue(),
-                file_name="my_spotify_data.parquet" if filename == "" else f"{filename}.parquet",
+                file_name=final_filename,
                 mime="application/octet-stream"
             )
+
             st.divider()
             st.subheader("Your Data")
             st.dataframe(st.session_state.data)
 
 if st.session_state.page == "Home":
     df = st.session_state.data
-    st.title("Tracks")
+    st.title("Whole Listening History Overview")
+    st.divider()
 
     min_date = df['ts'].min().date()
     max_date = df['ts'].max().date() + pd.Timedelta('1d')
     col1, col2 = st.columns(2)
     with col1:
+        st.subheader("Want to look at a certain date range?")
         selected_dates = st.date_input(
             "Select Date Range",
             value=[min_date, max_date]
         )
     with col2:
+        st.subheader("Or look at all your history?")
         use_all_history = st.checkbox("Look at all History?")
 
     if use_all_history:
@@ -116,10 +134,6 @@ if st.session_state.page == "Home":
     mask = (df['ts'] >= start_date) & (df['ts'] <= end_date)
     filtered_df = df.loc[mask]
 
-    st.markdown("### Track-Level Analysis")
-
-    
-    # Basic statistics
     col1, col2, col3, col4 = st.columns(4)
     basic_stats = analyticsFuncs.basicStats(filtered_df)
     with col1:
@@ -130,6 +144,13 @@ if st.session_state.page == "Home":
         st.metric("Skip Percentage", f"{(basic_stats.skip_percentage*100):.2f}%")
     with col4:
         st.metric("Total Listening Time", f"{basic_stats.total_minutes:.2f} minutes")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Unique Songs", basic_stats.unique_tracks)
+    with col2:
+        st.metric("Unique Artists", basic_stats.unique_artists)
+    with col3:
+        st.metric("Unique Albums", basic_stats.unique_albums)
 
     col1, col2 = st.columns(2)
     first_last_play = analyticsFuncs.firstLastPlay(filtered_df)

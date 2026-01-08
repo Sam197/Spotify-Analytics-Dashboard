@@ -82,6 +82,9 @@ class BasicStats:
     total_plays_no_skips: int
     skip_percentage: float
     total_minutes: float
+    unique_tracks: int
+    unique_artists: int
+    unique_albums: int
 
 @dataclass
 class FirstLastPlay:
