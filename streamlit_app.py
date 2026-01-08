@@ -17,6 +17,9 @@ You can download your current dataset as a Parquet file for faster loading next 
 Simply provide a filename (without extension), hit enter, and click the download button.
 """
 
+def reset():
+    st.session_state.previous_rand = None
+
 st.set_page_config(page_title="Music Analytics", layout="wide", page_icon='logo.jpg')
 
 if 'data' not in st.session_state:
@@ -30,6 +33,8 @@ if st.session_state.data is not None:
     page = st.sidebar.radio("Navigate", ['Upload', 'Home', 'Track', 'Artist', 'Album'])
     st.session_state.page = page
     st.sidebar.markdown("Checkout the [GitHub Repository](https://github.com/Sam197/Spotify-Analytics-Dashboard)!")
+if 'previous_rand' not in st.session_state:
+    st.session_state.previous_rand = None
 
 if st.session_state.page == 'Upload' or st.session_state.data is None:
     st.title("📊 Spotify Analytics Dashboard")
@@ -247,7 +252,7 @@ if st.session_state.page == "Home":
 elif st.session_state.page == 'Track':
 
     st.title("Looking for a Specific Track?")
-    search_keyword = st.text_input("Start Searching for a Song", placeholder="Enter a Song Title")
+    search_keyword = st.text_input("Start Searching for a Song", placeholder="Enter a Song Title", on_change=reset)
     artist, album = "", ""
     col1, col2, col3, col4 = st.columns(4)
     song_history = None
@@ -256,22 +261,26 @@ elif st.session_state.page == 'Track':
         exact = st.checkbox("Exact Match?", help="Looks for an exact match, your search phrase needs to exactly match what you are looking for")
     with col2:
         artistEntry = st.checkbox("Refine With Artist?", help='Add an artist to refine your search. Will return all times this song has been listened to')
-        if artistEntry:
-            artist = st.text_input("Artist Name", placeholder="Enter Artist Name")
+    if artistEntry:
+        artist = st.text_input("Artist Name", placeholder="Enter Artist Name")
     with col3:
         albumEntry = st.checkbox("Refine With Album?", help='Will return all times the song as been listened to as part of the album. If a song is listend to across different albums, the numbers you see could be different')
-        if albumEntry:
-            album = st.text_input("Album Name", placeholder="Enter Album Name")
+    if albumEntry:
+        album = st.text_input("Album Name", placeholder="Enter Album Name")
     with col4:
         if st.button('Surprise Me!', help="Choose a random Song that you have listened to to look at! Biased towards number of plays"):
-            search_keyword, artist, _ = analyticsFuncs.random_play(st.session_state.data)
-            exact = True
+            st.session_state.previous_rand = analyticsFuncs.random_play(st.session_state.data)
+
+    if st.session_state.previous_rand:
+        track, artist, _ = st.session_state.previous_rand
+        search_keyword = track
+        exact = True
 
     if search_keyword != "":
         #When looking for a song, if multiple it will show the correct collated listens across all albums, but when filtering, it can be wrong
         #E.g. try radioactive my imagine dragons
         song_history = analyticsFuncs.get_song_stats(st.session_state.data, search_keyword, exact=exact, artist=artist, album=album)
-        print(song_history)
+
     if song_history is not None:
         summary_song_data = analyticsFuncs.song_sum_stats(song_history)
         markdown.summary_song_markdown(summary_song_data)
@@ -287,16 +296,20 @@ elif st.session_state.page == 'Track':
 elif st.session_state.page == 'Artist':
 
     st.title("Looking for a Specific Artist?")
-    search_keyword = st.text_input("Start Searching for an Artist", placeholder="Enter an Artist's Name")
+    search_keyword = st.text_input("Start Searching for an Artist", placeholder="Enter an Artist's Name", on_change=reset)
+    artist_hist = None
+
     col1, col2 = st.columns(2)
     with col1:
         exact = st.checkbox("Exact Match?")
     with col2:
-        if st.button("Surprise Me!",  help="Choose a random Artitst that you have listened to to look at! Biased towards number of plays"):
-            _, artist, _ = analyticsFuncs.random_play(st.session_state.data)
-            search_keyword = artist
-            exact = True
-    artist_hist = None
+        if st.button('Surprise Me!', help="Choose a random Song that you have listened to to look at! Biased towards number of plays"):
+            st.session_state.previous_rand = analyticsFuncs.random_play(st.session_state.data)
+
+    if st.session_state.previous_rand:
+        _, artist, _ = st.session_state.previous_rand
+        search_keyword = artist
+        exact = True
 
     if search_keyword != "":
         artist_hist = analyticsFuncs.get_artist_hist(st.session_state.data, search_keyword, exact=exact)
@@ -339,16 +352,20 @@ elif st.session_state.page == 'Artist':
 elif st.session_state.page == 'Album':
 
     st.title("Looking for a Specific Album?")
-    search_keyword = st.text_input("Start Searching for an Album", placeholder="Enter an Album Name")
+    search_keyword = st.text_input("Start Searching for an Album", placeholder="Enter an Album Name", on_change=reset)
+    album_hist = None
+    
     col1, col2 = st.columns(2)
     with col1:
         exact = st.checkbox("Exact Match?")
     with col2:
-        if st.button("Surprise Me!", help="Choose a random Album that you have listened to to look at! Biased towards number of plays"):
-            _, _, album = analyticsFuncs.random_play(st.session_state.data)
-            search_keyword = album
-            exact = True
-    album_hist = None
+        if st.button('Surprise Me!', help="Choose a random Song that you have listened to to look at! Biased towards number of plays"):
+            st.session_state.previous_rand = analyticsFuncs.random_play(st.session_state.data)
+
+    if st.session_state.previous_rand:
+        _, _, album = st.session_state.previous_rand
+        search_keyword = album
+        exact = True
 
     if search_keyword != "":
         album_hist = analyticsFuncs.get_album_hist(st.session_state.data, search_keyword, exact=exact)

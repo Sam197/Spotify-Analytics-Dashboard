@@ -146,11 +146,9 @@ def get_song_stats(df, song_name, exact=False, artist=None, album=None):
 
 def random_play(df):
     random_row = df.sample()
-    print(random_row)
     random = (random_row['master_metadata_track_name'].iloc[0],
               random_row['master_metadata_album_artist_name'].iloc[0],
               random_row['master_metadata_album_album_name'].iloc[0])
-    print(random)
     return random
 
 def firstLastPlay(df):
