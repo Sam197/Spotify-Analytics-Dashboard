@@ -332,9 +332,9 @@ elif st.session_state.page == 'Artist':
             polar_plots = plots.make_polar_plots(time_dfs)
             plots.plot_polar_plots(polar_plots)
 
-    if artist_hist is not None:
-        if st.checkbox("See Full Listening History for this Artist?", help="This shows all times a song from this artist was listened to, drawn straight from your raw Spotify data."):
-            st.dataframe(artist_hist, hide_index=True)
+        if artist_hist is not None:
+            if st.checkbox("See Full Listening History for this Artist?", help="This shows all times a song from this artist was listened to, drawn straight from your raw Spotify data."):
+                st.dataframe(artist_hist, hide_index=True)
 
 elif st.session_state.page == 'Album':
 
@@ -344,8 +344,8 @@ elif st.session_state.page == 'Album':
     with col1:
         exact = st.checkbox("Exact Match?")
     with col2:
-        if st.button("Surprise Me!"):
-            _, _, album = analyticsFuncs.random_play(st.session_state.data,  help="Choose a random Album that you have listened to to look at! Biased towards number of plays")
+        if st.button("Surprise Me!", help="Choose a random Album that you have listened to to look at! Biased towards number of plays"):
+            _, _, album = analyticsFuncs.random_play(st.session_state.data)
             search_keyword = album
             exact = True
     album_hist = None
