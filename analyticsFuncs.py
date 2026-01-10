@@ -1,15 +1,11 @@
 import streamlit as st
 import pandas as pd
 from models import *
-import numpy as np
+from config import *
 
 MS_MIN_CONVERSION = 60000
 MS_HOUR_CONVERSION = 3600000
 DAYS_PER_MONTH = 30.44
-TOP_SONG_COLUMN_ORDER = ['spotify_track_uri', 'track_name', 'artist_name', 'album_name',
-                'total_plays', 'plays_no_skips', 'total_minutes', 'mean_listen_mins', 'skip_percentage']
-TOP_ALBUM_COLUMN_ORDER = ['album_name', 'artist_name', 'unique_tracks',
-                'total_plays', 'plays_no_skips', 'total_minutes', 'mean_listen_mins', 'skip_percentage']
 
 def reorganiseColumns(df, column_order=None):
     if column_order is None:
@@ -17,13 +13,22 @@ def reorganiseColumns(df, column_order=None):
     df = df.loc[:, column_order + [col for col in df.columns if col not in column_order]]
     return df
 
+def renameColumns(df):
+    df_cols = df.columns
+    can_change = DISPLAY_COLUMN_NAMES_MAP.keys()
+    rename = {}
+    for col in df_cols:
+        if col in can_change:
+            rename[col] = DISPLAY_COLUMN_NAMES_MAP[col]
+    return df.rename(columns=rename)
+
 # def round_df(df, decimal_places=2, columns=['total_minutes', 'mean_listen_mins', 'skip_percentage']):
 #     df[columns] = df[columns].map(f"{{:.{decimal_places}f}}".format)
 #     #df[columns] = df[columns].astype(float)
 #     #df[columns] = df[columns].round(decimal_places)
 #     return df
 
-def containsOne(df):
+def contains_one_track(df):
     unique_uris = df['spotify_track_uri'].nunique()
 
     if unique_uris > 1:
@@ -38,17 +43,35 @@ def containsOne(df):
             })
             .reset_index()
             .rename(columns={
-                "master_metadata_track_name": "Track Name",
-                "master_metadata_album_artist_name": "Artist",
-                "master_metadata_album_album_name": "Album",
                 "spotify_track_uri": "Listens"
             })
         )
+        found_versions = renameColumns(found_versions)
         st.write(f"Found Multiple ({unique_uris}) Songs - please refine your search")
         st.dataframe(found_versions.sort_values('Listens', ascending=False), width='stretch', hide_index=True)
         return False
     
     return True
+
+def contains_one_artist_album(df, artist_album):
+    if artist_album == 'Artist':
+        col = 'master_metadata_album_artist_name'
+    elif artist_album == 'Album':
+        col = 'master_metadata_album_album_name'
+
+    unique = df[col].nunique()
+    if unique > 1:
+        found = (
+            df.groupby(col)
+            .size()
+            .reset_index(name='Listens')
+        )
+
+        found = renameColumns(found)
+        st.write(f"Found Multiple ({unique}) {artist_album} - please refine your search")
+        st.dataframe(found.sort_values('Listens', ascending=False), width='stretch', hide_index=True)
+        return True
+    return False
 
 def song_sum_stats(df):
     if df is None or df.empty:
@@ -137,7 +160,7 @@ def get_song_stats(df, song_name, exact=False, artist=None, album=None):
         st.write(f"No matches found for Song: '{song_name}', Artist: '{artist}', Album: '{album}'.")
         return None
 
-    if not containsOne(song_history):
+    if not contains_one_track(song_history):
         return None
     
     song_history['ts'] = pd.to_datetime(song_history['ts'])
@@ -205,7 +228,7 @@ def aggregate_by(df, group_col, name_cols=None):
     
     summary = df.groupby(group_col).agg(**agg_dict).reset_index()
     
-    summary['total_minutes'] = summary['total_ms'] / MS_MIN_CONVERSION
+    summary['total_mins'] = summary['total_ms'] / MS_MIN_CONVERSION
     summary['mean_listen_mins'] = summary['mean_listen_ms'] / MS_MIN_CONVERSION
     summary['skip_percentage'] = (1 - (summary['plays_no_skips'] / summary['total_plays'])) * 100
     
@@ -213,28 +236,13 @@ def aggregate_by(df, group_col, name_cols=None):
     
     return summary
 
-def get_artist(df, artist, exact):
-    return filter_dataframe(df, 'master_metadata_album_artist_name', artist, exact)
-
 def get_artist_hist(df, artist, exact=False):
-    artist_hist = get_artist(df, artist, exact)
-    
-    unique_artists = artist_hist['master_metadata_album_artist_name'].nunique()
-    
-    if unique_artists > 1:
-        found_artists = (
-            artist_hist.groupby('master_metadata_album_artist_name')
-            .size()
-            .reset_index(name='Listens')
-            .rename(columns={
-                "master_metadata_album_artist_name": "Artist",
-            })
-        )
-        st.write(f"Found Multiple ({unique_artists}) Artists - please refine your search")
-        st.dataframe(found_artists.sort_values('Listens', ascending=False), width='stretch', hide_index=True)
-        return None
-    elif artist_hist.empty:
+    artist_hist = filter_dataframe(df, 'master_metadata_album_artist_name', artist, exact)
+    if artist_hist.empty:
         st.write(f"Could not find an artist containing '{artist}'")
+        return None
+
+    if contains_one_artist_album(artist_hist, 'Artist'):
         return None
     else:
         return artist_hist
@@ -272,6 +280,7 @@ def get_top_n(df, sort_configs, n=5, min_plays_filter=None):
             )
         
         #sorted_df = round_df(sorted_df)
+        sorted_df = renameColumns(sorted_df)
         results[key] = sorted_df.head(n)
     
     return results
@@ -289,7 +298,7 @@ def top_songs(df, show_uri=True, config=None):
     sort_configs = {
         'by_plays': {'by': 'total_plays', 'ascending': False},
         'by_no_skips': {'by': 'plays_no_skips', 'ascending': False},
-        'by_minutes': {'by': 'total_minutes', 'ascending': False},
+        'by_minutes': {'by': 'total_mins', 'ascending': False},
         'by_mean_minutes': {'by': 'mean_listen_mins', 'ascending': False},
         'lowest_skip': {
             'by': ['skip_percentage', 'total_plays'],
@@ -306,7 +315,7 @@ def top_songs(df, show_uri=True, config=None):
     top_results = get_top_n(song_sum, sort_configs, n=config.top_n, min_plays_filter=True)
     
     return TopResults(
-        all_data=song_sum,
+        all_data=renameColumns(song_sum),
         by_plays=top_results['by_plays'],
         by_no_skips=top_results['by_no_skips'],
         by_minutes=top_results['by_minutes'],
@@ -326,7 +335,7 @@ def artistAnalytics(df):
         }
     )
     
-    base_agg = base_agg.rename(columns={'master_metadata_album_artist_name': 'artist_name'})
+    #base_agg = base_agg.rename(columns={'master_metadata_album_artist_name': 'artist_name'})
     
     return base_agg
 
@@ -339,7 +348,7 @@ def top_artists(df, config=None):
     sort_configs = {
         'by_plays': {'by': 'total_plays', 'ascending': False},
         'by_no_skips': {'by': 'plays_no_skips', 'ascending': False},
-        'by_time': {'by': 'total_minutes', 'ascending': False},
+        'by_time': {'by': 'total_mins', 'ascending': False},
         'by_diversity': {'by': 'unique_tracks', 'ascending': False},
         'lowest_skip': {
             'by': 'skip_percentage',
@@ -356,7 +365,7 @@ def top_artists(df, config=None):
     top_results = get_top_n(artist_sum, sort_configs, n=config.top_n, min_plays_filter=True)
     
     return TopArtistResults(
-        all_data=artist_sum,
+        all_data=renameColumns(artist_sum),
         by_plays=top_results['by_plays'],
         by_no_skips=top_results['by_no_skips'],
         by_time=top_results['by_time'],
@@ -397,7 +406,7 @@ def top_albums(df, config=None, single=False):
         sort_configs = {
             'by_plays': {'by': 'total_plays', 'ascending': False},
             'by_no_skips': {'by': 'plays_no_skips', 'ascending': False},
-            'by_time': {'by': 'total_minutes', 'ascending': False},
+            'by_time': {'by': 'total_mins', 'ascending': False},
             'by_diversity': {'by': 'unique_tracks', 'ascending': False},
             'lowest_skip': {
                 'by': ['skip_percentage', 'total_plays'],
@@ -413,7 +422,7 @@ def top_albums(df, config=None, single=False):
         top_results = get_top_n(album_sum, sort_configs, n=Config.top_n, min_plays_filter=True)
 
     return TopArtistResults(
-        all_data=album_sum,
+        all_data=renameColumns(album_sum),
         by_plays=top_results['by_plays'],
         by_no_skips=top_results['by_no_skips'],
         by_time=top_results['by_time'],
@@ -424,22 +433,12 @@ def top_albums(df, config=None, single=False):
 
 def get_album_hist(df, album_name, exact=False):
     album_hist = filter_dataframe(df, 'master_metadata_album_album_name', album_name, exact)
-    unique_albums = album_hist['master_metadata_album_album_name'].nunique()
 
-    if unique_albums > 1:
-        found_albums = (
-            album_hist.groupby('master_metadata_album_album_name')
-            .size()
-            .reset_index(name='Listens')
-            .rename(columns={
-                "master_metadata_album_album_name": "Album",
-            })
-        )
-        st.write(f"Found Multiple ({unique_albums}) Albums - please refine your search")
-        st.dataframe(found_albums.sort_values('Listens', ascending=False), width='stretch', hide_index=True)
-        return None
-    elif album_hist.empty:
+    if album_hist.empty:
         st.write(f"Could not find an album containing '{album_name}'")
+        return None
+
+    if contains_one_artist_album(album_hist, 'Album'):
         return None
     else:
         return album_hist
@@ -465,7 +464,7 @@ def artist_album_sum_stats(df, artist=False, album=False):
     most_plays_in_day = df['date'].value_counts().max()
 
     timespan = (df['ts'].iloc[-1] - df['ts'].iloc[0]).days
-    avg_plays_per_month = tot_plays / (max(timespan, 1) / DAYS_PER_MONTH)
+    avg_plays_per_month = tot_plays / (max(timespan, 1) / DAYS_PER_MONTH) if timespan > 31 else False
 
     years_active = df['ts'].dt.year.nunique()
 
@@ -478,19 +477,20 @@ def artist_album_sum_stats(df, artist=False, album=False):
         'master_metadata_track_name': 'Song',
         'ts': 'Listens',
         'master_metadata_album_album_name': 'Album',
-        'skipped': 'Full Listens'
+        'skipped': 'Plays No Skips'
     }).sort_values('Listens', ascending=False)
     full_hist['Total Minutes'] = full_hist['ms_played'] / MS_MIN_CONVERSION
     full_hist = full_hist.drop(columns=['ms_played'])
+    full_hist['Skip Percentage'] = 1 - (full_hist['Plays No Skips']/full_hist['Listens'])
     
     
     artist_name = df['master_metadata_album_artist_name'].iloc[0]
     album_name = df['master_metadata_album_album_name'].iloc[0]
     if artist:
-        full_hist = reorganiseColumns(full_hist, ['Song', 'Album', 'Listens', 'Full Listens', 'Total Minutes'])
+        full_hist = reorganiseColumns(full_hist, ['Song', 'Album', 'Listens', 'Plays No Skips', 'Total Minutes', 'Skip Percentage'])
     elif album:
         full_hist.drop(columns=['Album'], inplace=True)
-        full_hist = reorganiseColumns(full_hist, ['Song', 'Listens', 'Full Listens', 'Total Minutes'])
+        full_hist = reorganiseColumns(full_hist, ['Song', 'Listens', 'Plays No Skips', 'Total Minutes', 'Skip Percentage'])
     
     top_songs = full_hist.head(Config().top_n)
 

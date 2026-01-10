@@ -82,7 +82,12 @@ def summary_artist_album_markdown(data, artist=False, album=False):
 
     #### ⚡ Engagement
     * **Binge Factor:** {data.most_plays_in_day} plays in a single day (on {data.most_plays_in_day_date})
-    * **Monthly Velocity:** {data.avg_plays_per_month:.2f} plays/month
+    """)
+    if data.avg_plays_per_month:
+        st.markdown(f"""
+        * **Monthly Velocity:** {data.avg_plays_per_month:.2f} plays/month
+        """)
+    st.markdown(f"""
     * **Peak Month:** {MONTHS[data.peak_month.month]} {data.peak_month.year} ({data.peak_month_count} plays)
 
     ---

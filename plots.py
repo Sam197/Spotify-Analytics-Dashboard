@@ -114,9 +114,9 @@ def plot_polar_plots(plots):
 
 def make_pie_chart_track(df, max_elements = 10, album=False):
     if album:
-        cols = ['Listens', 'Full Listens']
+        cols = ['Listens', 'Plays No Skips']
     else:
-        cols = ['Listens', 'Full Listens', 'Album']
+        cols = ['Listens', 'Plays No Skips', 'Album']
     df = df.drop(columns=cols)
     tot_mins = df['Total Minutes'].sum()
     df = df.sort_values('Total Minutes', ascending=False)
@@ -140,7 +140,7 @@ def make_pie_chart_track(df, max_elements = 10, album=False):
 def make_pie_chart_album(df, max_elements = 10):
     df = df.drop(columns=['unique_tracks', 'total_plays', 'plays_no_skips', 'mean_listen_mins', 'skip_percentage'])
     df = df.rename(columns={'album_name': 'Album',
-                    'total_minutes': 'Total Minutes'})
+                    'total_mins': 'Total Minutes'})
     tot_mins = df['Total Minutes'].sum()
     df = df.sort_values('Total Minutes', ascending=False)
 

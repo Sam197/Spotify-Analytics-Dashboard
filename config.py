@@ -36,6 +36,16 @@ class SessionKeys:
     HAS_INITIAL_DATA = 'has_initial_data'
     PREVIOUS_RAND = 'previous_rand'
 
+TOP_SONG_COLUMN_ORDER = ['spotify_track_uri', 'track_name', 'artist_name', 'album_name',
+                'total_plays', 'plays_no_skips', 'total_mins', 'mean_listen_mins', 'skip_percentage']
+TOP_ALBUM_COLUMN_ORDER = ['album_name', 'artist_name', 'unique_tracks',
+                'total_plays', 'plays_no_skips', 'total_mins', 'mean_listen_mins', 'skip_percentage']
+DISPLAY_COLUMN_NAMES_MAP = {'spotify_track_uri': 'Track URI', 'master_metadata_track_name': 'Track Name',
+                            'master_metadata_album_artist_name': 'Artist', 'master_metadata_album_album_name': 'Album',
+                            'total_mins': 'Total Minutes', 'mean_listen_mins': 'Mean Listen (mins)',
+                            'skip_percentage': 'Skip Percentage', 'plays_no_skips': 'Plays No Skips',
+                            'track_name': 'Track Name', 'artist_name': 'Artist', 'album_name': 'Album', 'total_plays': 'Total Plays'}
+
 spotify_palette = [
     "#0C7230", '#8D67AB', '#19E3E0', '#E91E63', '#4587F7', 
     '#FF5722', '#00897B', '#F4C430', '#3F51B5', '#607D8B'
