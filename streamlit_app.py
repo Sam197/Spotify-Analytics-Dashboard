@@ -39,17 +39,17 @@ else:
 
 # Import and render the appropriate page
 if st.session_state.current_page == 'Upload':
-    from pa import upload
+    from page import upload
     upload.render()
 elif st.session_state.current_page == 'Home':
-    from pa import home
+    from page import home
     home.render()
 elif st.session_state.current_page == 'Track':
-    from pa import track
+    from page import track
     track.render()
 elif st.session_state.current_page == 'Artist':
-    from pa import artist
+    from page import artist
     artist.render()
 elif st.session_state.current_page == 'Album':
-    from pa import album
+    from page import album
     album.render()

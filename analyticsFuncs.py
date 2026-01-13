@@ -280,7 +280,7 @@ def get_top_n(df, sort_configs, n=5, min_plays_filter=None):
             )
         
         #sorted_df = round_df(sorted_df)
-        sorted_df = renameColumns(sorted_df)
+        #sorted_df = renameColumns(sorted_df)
         results[key] = sorted_df.head(n)
     
     return results
