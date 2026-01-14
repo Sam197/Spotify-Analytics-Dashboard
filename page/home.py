@@ -1,14 +1,14 @@
 import streamlit as st
 from utils.session_state import get_data, has_data
-from components.filters import get_date_range_filter
-from components.metrics import display_basic_stats, display_first_last_play
-from components.tables import (
+from UI.filters import get_date_range_filter
+from UI.metrics import display_basic_stats, display_first_last_play
+from UI.tables import (
     display_top_songs_section,
     display_top_artists_section,
     display_top_albums_section
 )
-import analyticsFuncs
-import plots
+from analytics import analytics_funcs
+from UI import plots
 
 def render():
     if not has_data():
@@ -24,18 +24,18 @@ def render():
     filtered_df, start_date, end_date = get_date_range_filter(df)
 
     # Basic statistics
-    basic_stats = analyticsFuncs.basicStats(filtered_df)
+    basic_stats = analytics_funcs.basicStats(filtered_df)
     display_basic_stats(basic_stats)
 
     # First and last play
-    first_last_play = analyticsFuncs.firstLastPlay(filtered_df)
+    first_last_play = analytics_funcs.firstLastPlay(filtered_df)
     display_first_last_play(first_last_play)
 
     st.divider()
 
     # Time-based listening patterns
     st.subheader("When Do You Listen?")
-    polar_plot_data = analyticsFuncs.get_data_for_polar_plots(filtered_df)
+    polar_plot_data = analytics_funcs.get_data_for_polar_plots(filtered_df)
     polar_plots = plots.make_polar_plots(polar_plot_data)
     plots.plot_polar_plots(polar_plots)
 
@@ -54,17 +54,17 @@ def render():
     with col2:
         show_uri = st.checkbox("Show URIs?")
 
-    top_songs = analyticsFuncs.top_songs(filtered_df, show_uri=show_uri)
+    top_songs = analytics_funcs.top_songs(filtered_df, show_uri=show_uri)
     display_top_songs_section(top_songs, start_date, end_date, show_uri)
 
     st.divider()
 
     # Artist analytics
-    top_artists = analyticsFuncs.top_artists(filtered_df)
+    top_artists = analytics_funcs.top_artists(filtered_df)
     display_top_artists_section(top_artists, start_date, end_date)
 
     st.divider()
 
     # Album analytics
-    top_albums = analyticsFuncs.top_albums(filtered_df)
+    top_albums = analytics_funcs.top_albums(filtered_df)
     display_top_albums_section(top_albums, start_date, end_date)

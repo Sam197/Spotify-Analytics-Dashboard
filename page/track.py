@@ -1,8 +1,7 @@
 import streamlit as st
 from utils.session_state import get_data, has_data, reset_random_selection
-import analyticsFuncs
-import markdown
-import plots
+from analytics import analytics_funcs
+from UI import markdown, plots
 
 def render():
     if not has_data():
@@ -53,7 +52,7 @@ def render():
             'Surprise Me!',
             help="Choose a random Song that you have listened to to look at! Biased towards number of plays"
         ):
-            st.session_state.previous_rand = analyticsFuncs.random_play(df)
+            st.session_state.previous_rand = analytics_funcs.random_play(df)
 
     # Handle random selection
     if st.session_state.previous_rand:
@@ -63,7 +62,7 @@ def render():
 
     # Search for song
     if search_keyword != "":
-        song_history = analyticsFuncs.get_song_stats(
+        song_history = analytics_funcs.get_song_stats(
             df,
             search_keyword,
             exact=exact,
@@ -73,14 +72,14 @@ def render():
 
     # Display results
     if song_history is not None:
-        summary_song_data = analyticsFuncs.song_sum_stats(song_history)
+        summary_song_data = analytics_funcs.song_sum_stats(song_history)
         markdown.summary_song_markdown(summary_song_data)
         
         plots.make_mins_and_streams_plots(song_history)
         
         st.divider()
         st.write("When did you listen?")
-        time_dfs = analyticsFuncs.get_data_for_polar_plots(song_history)
+        time_dfs = analytics_funcs.get_data_for_polar_plots(song_history)
         polar_plots = plots.make_polar_plots(time_dfs)
         plots.plot_polar_plots(polar_plots)
         

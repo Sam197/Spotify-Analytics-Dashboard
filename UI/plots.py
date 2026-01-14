@@ -1,6 +1,6 @@
 import streamlit as st
 import plotly.express as px
-from analyticsFuncs import MS_MIN_CONVERSION
+from analytics.analytics_funcs import MS_MIN_CONVERSION
 import pandas as pd
 from config import spotify_palette
 

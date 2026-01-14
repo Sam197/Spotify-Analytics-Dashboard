@@ -1,8 +1,7 @@
 import streamlit as st
 from utils.session_state import get_data, has_data, reset_random_selection
-import analyticsFuncs
-import markdown
-import plots
+from analytics import analytics_funcs
+from UI import markdown, plots
 import models
 
 def render():
@@ -32,7 +31,7 @@ def render():
             'Surprise Me!',
             help="Choose a random Song that you have listened to to look at! Biased towards number of plays"
         ):
-            st.session_state.previous_rand = analyticsFuncs.random_play(df)
+            st.session_state.previous_rand = analytics_funcs.random_play(df)
 
     # Handle random selection
     if st.session_state.previous_rand:
@@ -42,10 +41,10 @@ def render():
 
     # Search for artist
     if search_keyword != "":
-        artist_hist = analyticsFuncs.get_artist_hist(df, search_keyword, exact=exact)
+        artist_hist = analytics_funcs.get_artist_hist(df, search_keyword, exact=exact)
         
         if artist_hist is not None:
-            artist_sum_stats = analyticsFuncs.artist_album_sum_stats(artist_hist, artist=True)
+            artist_sum_stats = analytics_funcs.artist_album_sum_stats(artist_hist, artist=True)
             markdown.summary_artist_album_markdown(artist_sum_stats, artist=True)
             
             # Show all songs if there are many
@@ -61,7 +60,7 @@ def render():
             )
             
             # Albums for this artist
-            top_albums_for_artist = analyticsFuncs.top_albums(artist_hist, single=True)
+            top_albums_for_artist = analytics_funcs.top_albums(artist_hist, single=True)
             top_albums_for_artist.drop(columns=['artist_name'], inplace=True)
             
             st.subheader("Top Albums for this Artist")
@@ -88,7 +87,7 @@ def render():
                 f"For the time period {artist_hist['ts'].min().date()} "
                 f"to {artist_hist['ts'].max().date()}"
             )
-            time_dfs = analyticsFuncs.get_data_for_polar_plots(artist_hist)
+            time_dfs = analytics_funcs.get_data_for_polar_plots(artist_hist)
             polar_plots = plots.make_polar_plots(time_dfs)
             plots.plot_polar_plots(polar_plots)
 

@@ -1,5 +1,5 @@
 import streamlit as st
-from analyticsFuncs import MONTHS
+from analytics.analytics_funcs import MONTHS
 
 def summary_song_markdown(data):
 
