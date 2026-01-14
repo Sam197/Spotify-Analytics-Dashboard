@@ -127,7 +127,7 @@ def filter_dataframe(df, column, value, exact=False):
     if exact:
         return df[df[column] == value]
     else:
-        return df[df[column].str.contains(value, case=False, na=False)]
+        return df[df[column].str.contains(value, case=False, na=False, regex=False)]
 
 def get_song(df, song_name, exact=False, artist=None, album=None):
     mask = pd.Series([True] * len(df), index=df.index)
@@ -135,19 +135,19 @@ def get_song(df, song_name, exact=False, artist=None, album=None):
     if exact:
         mask &= (df['master_metadata_track_name'] == song_name)
     else:
-        mask &= df['master_metadata_track_name'].str.contains(song_name, case=False, na=False)
+        mask &= df['master_metadata_track_name'].str.contains(song_name, case=False, na=False, regex=False)
 
     if artist:
         if exact:
             mask &= (df['master_metadata_album_artist_name'] == artist)
         else:
-            mask &= df['master_metadata_album_artist_name'].str.contains(artist, case=False, na=False)
+            mask &= df['master_metadata_album_artist_name'].str.contains(artist, case=False, na=False, regex=False)
 
     if album:
         if exact:
             mask &= (df['master_metadata_album_album_name'] == album)
         else:
-            mask &= df['master_metadata_album_album_name'].str.contains(album, case=False, na=False)
+            mask &= df['master_metadata_album_album_name'].str.contains(album, case=False, na=False, regex=False)
 
     song_history = df[mask].copy()
 
