@@ -44,7 +44,7 @@ def display_top_songs_section(top_songs, start_date, end_date, show_uri=False):
     
     st.divider()
     st.write(f"Full song summary statistics for period {start_date.date()} to {end_date.date()}")
-    st.dataframe(top_songs.all_data, hide_index=True)
+    st.dataframe(st.session_state.track_df, hide_index=True)
 
 def display_top_artists_section(top_artists, start_date, end_date):
     """Display all top artists tables"""
@@ -85,7 +85,7 @@ def display_top_artists_section(top_artists, start_date, end_date):
     
     st.divider()
     st.write(f"Full artist summary statistics for period {start_date.date()} to {end_date.date()}")
-    st.dataframe(top_artists.all_data, hide_index=True)
+    st.dataframe(st.session_state.artist_df, hide_index=True)
 
 def display_top_albums_section(top_albums, start_date, end_date):
     """Display all top albums tables"""
@@ -126,4 +126,4 @@ def display_top_albums_section(top_albums, start_date, end_date):
     
     st.divider()
     st.write(f"Full album summary statistics for period {start_date.date()} to {end_date.date()}")
-    st.dataframe(top_albums.all_data, hide_index=True)
+    st.dataframe(st.session_state.album_df, hide_index=True)

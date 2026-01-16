@@ -1,6 +1,7 @@
 import streamlit as st
-from utils.session_state import initialize_session_state, surprise_me_reset
+from utils.session_state import initialize_session_state, surprise_me_reset, has_data
 from config import APP_CONFIG
+from analytics.analytics_funcs import get_track_df, get_artist_df, get_album_df
 
 # Page configuration
 st.set_page_config(
@@ -11,6 +12,13 @@ st.set_page_config(
 
 # Initialize session state
 initialize_session_state()
+if has_data():
+    if st.session_state.track_df is None:
+        st.session_state.track_df = get_track_df(st.session_state.data)
+    if st.session_state.artist_df is None:
+        st.session_state.artist_df = get_artist_df(st.session_state.data)
+    if st.session_state.album_df is None:
+        st.session_state.album_df = get_album_df(st.session_state.data)
 
 # Initialize page selection in session state
 if 'current_page' not in st.session_state:

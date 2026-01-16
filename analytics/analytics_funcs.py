@@ -285,12 +285,30 @@ def get_top_n(df, sort_configs, n=5, min_plays_filter=None):
     
     return results
 
+def get_track_df(df):
+
+    track_df = dfAnalytics(df)
+    track_df = reorganiseColumns(track_df, TOP_SONG_COLUMN_ORDER)
+    track_df[[m + '_rank' for m in SONG_RANK_METRICS]] = track_df[SONG_RANK_METRICS].rank(ascending=False, method='min')
+    return track_df.copy(deep=True)
+
+def get_artist_df(df):
+    artist_df = artistAnalytics(df)
+    artist_df = reorganiseColumns(artist_df, TOP_ARTIST_COLUMN_ORDER)
+    artist_df[[m + '_rank' for m in ARTIST_RANK_METRICS]] = artist_df[ARTIST_RANK_METRICS].rank(ascending=False, method='min')
+    return artist_df.copy(deep=True)
+
+def get_album_df(df):
+    album_df = albumAnalytics(df)
+    album_df = reorganiseColumns(album_df, TOP_ALBUM_COLUMN_ORDER)
+    album_df[[m + '_rank' for m in ALBUM_RANK_METRICS]] = album_df[ALBUM_RANK_METRICS].rank(ascending=False, method='min')
+    return album_df.copy(deep=True)
+
 def top_songs(df, show_uri=True, config=None):
     if config is None:
         config = Config()
     
-    song_sum = dfAnalytics(df)
-    song_sum = reorganiseColumns(song_sum, TOP_SONG_COLUMN_ORDER)
+    song_sum = st.session_state.track_df[TOP_SONG_COLUMN_ORDER]
 
     if not show_uri:
         song_sum = song_sum.drop(columns=['spotify_track_uri'])
@@ -343,7 +361,7 @@ def top_artists(df, config=None):
     if config is None:
         config = Config()
     
-    artist_sum = artistAnalytics(df)
+    artist_sum = st.session_state.artist_df[TOP_ARTIST_COLUMN_ORDER]
     
     sort_configs = {
         'by_plays': {'by': 'total_plays', 'ascending': False},
@@ -393,8 +411,7 @@ def top_albums(df, config=None, single=False):
     if config is None:
         config = Config()
     
-    album_sum = albumAnalytics(df)
-    album_sum = reorganiseColumns(album_sum, TOP_ALBUM_COLUMN_ORDER)
+    album_sum = st.session_state.album_df[TOP_ALBUM_COLUMN_ORDER]
 
     if single:
         sort_configs = {

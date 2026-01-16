@@ -11,6 +11,15 @@ def initialize_session_state():
     
     if SessionKeys.PREVIOUS_RAND not in st.session_state:
         st.session_state[SessionKeys.PREVIOUS_RAND] = None
+    
+    if SessionKeys.TRACK_DF not in st.session_state:
+        st.session_state[SessionKeys.TRACK_DF] = None
+    
+    if SessionKeys.ARTIST_DF not in st.session_state:
+        st.session_state[SessionKeys.ARTIST_DF] = None
+    
+    if SessionKeys.ALBUM_DF not in st.session_state:
+        st.session_state[SessionKeys.ALBUM_DF] = None
 
 def reset_random_selection():
     """Reset the random track selection"""
