@@ -1,5 +1,5 @@
 import streamlit as st
-from analyticsFuncs import MONTHS
+from analytics.analytics_funcs import MONTHS
 
 def summary_song_markdown(data):
 
@@ -22,7 +22,7 @@ def summary_song_markdown(data):
     | **Total Plays** | {data.tot_plays} |
     | **Full Listens** | {data.full_plays} |
     | **Skips** | {data.tot_skips} ({100 - data.listen_rate:.1f}% skip rate) |
-    | **Total Time** | {data.tot_hours:.2f} hours |
+    | **Total Time** | {data.tot_mins:.2f} Minutes |
 
     ---
 
@@ -53,7 +53,7 @@ def summary_artist_album_markdown(data, artist=False, album=False):
         #### 📊 Career Statistics
         | Metric | Value |
         | :--- | :--- |
-        | **Total Time** | {data.tot_hours:.2f} Hours |
+        | **Total Time** | {data.tot_mins:.2f} Minutes |
         | **Total Plays** | {data.tot_plays} |
         | **Unique Songs** | {data.unique_songs} |
         | **Unique Albums** | {data.unique_albums} |
@@ -64,7 +64,7 @@ def summary_artist_album_markdown(data, artist=False, album=False):
         #### 📊 Career Statistics
         | Metric | Value |
         | :--- | :--- |
-        | **Total Time** | {data.tot_hours:.2f} Hours |
+        | **Total Time** | {data.tot_mins:.2f} Minutes |
         | **Total Plays** | {data.tot_plays} |
         | **Unique Songs** | {data.unique_songs} |
         | **Loyalty** | Listened to in {data.years_active} different year(s) |
@@ -82,7 +82,12 @@ def summary_artist_album_markdown(data, artist=False, album=False):
 
     #### ⚡ Engagement
     * **Binge Factor:** {data.most_plays_in_day} plays in a single day (on {data.most_plays_in_day_date})
-    * **Monthly Velocity:** {data.avg_plays_per_month:.2f} plays/month
+    """)
+    if data.avg_plays_per_month:
+        st.markdown(f"""
+        * **Monthly Velocity:** {data.avg_plays_per_month:.2f} plays/month
+        """)
+    st.markdown(f"""
     * **Peak Month:** {MONTHS[data.peak_month.month]} {data.peak_month.year} ({data.peak_month_count} plays)
 
     ---

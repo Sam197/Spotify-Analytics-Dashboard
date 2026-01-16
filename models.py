@@ -28,7 +28,7 @@ class SongStats:
     tot_skips: int
     full_plays: int
     listen_rate: float
-    tot_hours: float
+    tot_mins: float
     avg_plays_per_month: float
     most_plays_in_day: int
     most_plays_in_day_date: pd.Period
@@ -40,7 +40,7 @@ class ArtistAlbumStats:
     artist_name: str
     album_name: str
     tot_plays: int
-    tot_hours: float
+    tot_mins: float
     unique_songs: int
     unique_albums: int
     first_song_row: pd.Series
@@ -82,6 +82,9 @@ class BasicStats:
     total_plays_no_skips: int
     skip_percentage: float
     total_minutes: float
+    unique_tracks: int
+    unique_artists: int
+    unique_albums: int
 
 @dataclass
 class FirstLastPlay:
