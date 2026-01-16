@@ -9,7 +9,7 @@ def display_basic_stats(basic_stats):
     with col2:
         st.metric("Total Plays No Skips", basic_stats.total_plays_no_skips)
     with col3:
-        st.metric("Skip Percentage", f"{(basic_stats.skip_percentage*100):.2f}%")
+        st.metric("Skip Percentage", f"{(basic_stats.skip_percentage*100):.2f}%", help="Note that Songs Skipped before ~2020 may not be measured")
     with col4:
         st.metric("Total Listening Time", f"{basic_stats.total_minutes:.2f} minutes")
     
