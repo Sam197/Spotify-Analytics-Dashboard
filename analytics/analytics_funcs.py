@@ -312,6 +312,7 @@ def top_songs(df, show_uri=True, config=None):
         }
     }
     
+    st.session_state.song_sum = song_sum
     top_results = get_top_n(song_sum, sort_configs, n=config.top_n, min_plays_filter=True)
     
     return TopResults(
@@ -362,6 +363,7 @@ def top_artists(df, config=None):
         }
     }
     
+    st.session_state.artist_sum = artist_sum
     top_results = get_top_n(artist_sum, sort_configs, n=config.top_n, min_plays_filter=True)
     
     return TopArtistResults(
@@ -419,6 +421,8 @@ def top_albums(df, config=None, single=False):
                 'min_plays': config.min_plays_artist_skip_analysis
             }
         }
+
+        st.session_state.album_sum = album_sum
         top_results = get_top_n(album_sum, sort_configs, n=Config.top_n, min_plays_filter=True)
 
     return TopArtistResults(
