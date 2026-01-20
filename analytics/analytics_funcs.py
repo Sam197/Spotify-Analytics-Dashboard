@@ -7,6 +7,12 @@ MS_MIN_CONVERSION = 60000
 MS_HOUR_CONVERSION = 3600000
 DAYS_PER_MONTH = 30.44
 
+def add_suffix(num):
+    if num <= 31:
+        return f"{num}{DATE_SUFFIX[num]}"
+    else:
+        return f"{num}{DATE_SUFFIX[int(str(num)[-1])]}"
+
 def reorganiseColumns(df, column_order=None):
     if column_order is None:
         return df
@@ -80,6 +86,7 @@ def song_sum_stats(df):
     df['ts'] = pd.to_datetime(df['ts'])
     df = df.sort_values('ts')
 
+    uri = df['spotify_track_uri'].iloc[0]
     name = df['master_metadata_track_name'].iloc[0]
     artist = df['master_metadata_album_artist_name'].iloc[0]
     album = df['master_metadata_album_album_name'].iloc[0]
@@ -89,11 +96,21 @@ def song_sum_stats(df):
     timespan = (last_listen - first_listen).days
     
     tot_plays = len(df)
+    tot_plays_rank = st.session_state.track_df.loc[st.session_state.track_df['spotify_track_uri'] == uri, 'total_plays_rank'].item()
+    tot_plays_rank = add_suffix(int(tot_plays_rank))
+
     tot_skips = df['skipped'].sum() 
     full_plays = tot_plays - tot_skips
-    listen_rate = (full_plays / tot_plays) * 100 if tot_plays > 0 else 0
+    full_plays_rank = st.session_state.track_df.loc[st.session_state.track_df['spotify_track_uri'] == uri, 'plays_no_skips_rank'].item()
+    full_plays_rank = add_suffix(int(full_plays_rank))
+
+    skip_percentage = (1-(full_plays / tot_plays)) * 100 if tot_plays > 0 else 0
+    skip_percentage_rank = st.session_state.track_df.loc[st.session_state.track_df['spotify_track_uri'] == uri, 'skip_percentage_rank'].item()
+    skip_percentage_rank = add_suffix(int(skip_percentage_rank))
     
     tot_mins = df['ms_played'].sum() / MS_MIN_CONVERSION
+    tot_mins_rank = st.session_state.track_df[st.session_state.track_df['artist_name'] == artist].loc[st.session_state.track_df['track_name'] == name, 'total_mins_rank'].item()
+    tot_mins_rank = add_suffix(int(tot_mins_rank))
     avg_plays_per_month = tot_plays / (max(timespan, 1) / DAYS_PER_MONTH)
     
     df['month_year'] = df['ts'].dt.to_period('M')
@@ -112,10 +129,14 @@ def song_sum_stats(df):
         last_listen=last_listen,
         timespan=timespan,
         tot_plays=tot_plays,
+        tot_plays_rank=tot_plays_rank,
         tot_skips=tot_skips,
         full_plays=full_plays,
-        listen_rate=listen_rate,
+        full_plays_rank=full_plays_rank,
+        skip_percentage=skip_percentage,
+        skip_percentage_rank=skip_percentage_rank,
         tot_mins=tot_mins,
+        tot_mins_rank=tot_mins_rank,
         avg_plays_per_month=avg_plays_per_month,
         most_plays_in_day=most_plays_in_day,
         most_plays_in_day_date=most_plays_in_day_date,
@@ -289,19 +310,22 @@ def get_track_df(df):
 
     track_df = dfAnalytics(df)
     track_df = reorganiseColumns(track_df, TOP_SONG_COLUMN_ORDER)
-    track_df[[m + '_rank' for m in SONG_RANK_METRICS]] = track_df[SONG_RANK_METRICS].rank(ascending=False, method='min')
+    track_df[[m + '_rank' for m in SONG_RANK_METRICS_DESC]] = track_df[SONG_RANK_METRICS_DESC].rank(ascending=False, method='min')
+    track_df[[m + '_rank' for m in SONG_RANK_METRICS_ASEN]] = track_df[SONG_RANK_METRICS_ASEN].rank(method='min')
     return track_df.copy(deep=True)
 
 def get_artist_df(df):
     artist_df = artistAnalytics(df)
     artist_df = reorganiseColumns(artist_df, TOP_ARTIST_COLUMN_ORDER)
-    artist_df[[m + '_rank' for m in ARTIST_RANK_METRICS]] = artist_df[ARTIST_RANK_METRICS].rank(ascending=False, method='min')
+    artist_df[[m + '_rank' for m in ARTIST_RANK_METRICS_DESC]] = artist_df[ARTIST_RANK_METRICS_DESC].rank(ascending=False, method='min')
+    artist_df[[m + '_rank' for m in ARTIST_RANK_METRICS_ASEN]] = artist_df[ARTIST_RANK_METRICS_ASEN].rank(method='min')
     return artist_df.copy(deep=True)
 
 def get_album_df(df):
     album_df = albumAnalytics(df)
     album_df = reorganiseColumns(album_df, TOP_ALBUM_COLUMN_ORDER)
-    album_df[[m + '_rank' for m in ALBUM_RANK_METRICS]] = album_df[ALBUM_RANK_METRICS].rank(ascending=False, method='min')
+    album_df[[m + '_rank' for m in ALBUM_RANK_METRICS_DESC]] = album_df[ALBUM_RANK_METRICS_DESC].rank(ascending=False, method='min')
+    album_df[[m + '_rank' for m in ALBUM_RANK_METRICS_ASEN]] = album_df[ALBUM_RANK_METRICS_ASEN].rank(method='min')
     return album_df.copy(deep=True)
 
 def top_songs(df, show_uri=True, config=None):
@@ -410,34 +434,35 @@ def albumAnalytics(df):
 def top_albums(df, config=None, single=False):
     if config is None:
         config = Config()
-    
-    album_sum = st.session_state.album_df[TOP_ALBUM_COLUMN_ORDER]
 
     if single:
+        album_sum = albumAnalytics(df)
+        album_sum = reorganiseColumns(album_sum, TOP_ALBUM_COLUMN_ORDER)
         sort_configs = {
             'by_plays': {'by': 'total_plays', 'ascending': False}
         }
         top_results = get_top_n(album_sum, sort_configs, n=len(album_sum), min_plays_filter=True)
         return top_results['by_plays']
-    else:
-        sort_configs = {
-            'by_plays': {'by': 'total_plays', 'ascending': False},
-            'by_no_skips': {'by': 'plays_no_skips', 'ascending': False},
-            'by_time': {'by': 'total_mins', 'ascending': False},
-            'by_diversity': {'by': 'unique_tracks', 'ascending': False},
-            'lowest_skip': {
-                'by': ['skip_percentage', 'total_plays'],
-                'ascending': [True, False],
-                'min_plays': config.min_plays_artist_skip_analysis
-            },
-            'highest_skip': {
-                'by': ['skip_percentage', 'total_plays'],
-                'ascending': [False, False],
-                'min_plays': config.min_plays_artist_skip_analysis
-            }
+    
+    album_sum = st.session_state.album_df[TOP_ALBUM_COLUMN_ORDER]
+    sort_configs = {
+        'by_plays': {'by': 'total_plays', 'ascending': False},
+        'by_no_skips': {'by': 'plays_no_skips', 'ascending': False},
+        'by_time': {'by': 'total_mins', 'ascending': False},
+        'by_diversity': {'by': 'unique_tracks', 'ascending': False},
+        'lowest_skip': {
+            'by': ['skip_percentage', 'total_plays'],
+            'ascending': [True, False],
+            'min_plays': config.min_plays_artist_skip_analysis
+        },
+        'highest_skip': {
+            'by': ['skip_percentage', 'total_plays'],
+            'ascending': [False, False],
+            'min_plays': config.min_plays_artist_skip_analysis
         }
+    }
 
-        top_results = get_top_n(album_sum, sort_configs, n=Config.top_n, min_plays_filter=True)
+    top_results = get_top_n(album_sum, sort_configs, n=Config.top_n, min_plays_filter=True)
 
     return TopArtistResults(
         all_data=renameColumns(album_sum),
@@ -499,26 +524,45 @@ def artist_album_sum_stats(df, artist=False, album=False):
     }).sort_values('Listens', ascending=False)
     full_hist['Total Minutes'] = full_hist['ms_played'] / MS_MIN_CONVERSION
     full_hist = full_hist.drop(columns=['ms_played'])
-    full_hist['Skip Percentage'] = 1 - (full_hist['Plays No Skips']/full_hist['Listens'])
+    full_hist['Skip Percentage'] = 1 - (full_hist['Plays No Skips']/full_hist['Listens']) * 100
     
     
     artist_name = df['master_metadata_album_artist_name'].iloc[0]
     album_name = df['master_metadata_album_album_name'].iloc[0]
+
     if artist:
         full_hist = reorganiseColumns(full_hist, ['Song', 'Album', 'Listens', 'Plays No Skips', 'Total Minutes', 'Skip Percentage'])
+        tot_plays_rank = st.session_state.artist_df.loc[st.session_state.artist_df['master_metadata_album_artist_name'] == artist_name, 'total_plays_rank'].item()
+        tot_mins_rank = st.session_state.artist_df.loc[st.session_state.artist_df['master_metadata_album_artist_name'] == artist_name, 'total_mins_rank'].item()
+        unique_songs_rank = st.session_state.artist_df.loc[st.session_state.artist_df['master_metadata_album_artist_name'] == artist_name, 'unique_tracks_rank'].item()
+        unique_albums_rank = st.session_state.artist_df.loc[st.session_state.artist_df['master_metadata_album_artist_name'] == artist_name, 'unique_albums_rank'].item()
+    
     elif album:
         full_hist.drop(columns=['Album'], inplace=True)
         full_hist = reorganiseColumns(full_hist, ['Song', 'Listens', 'Plays No Skips', 'Total Minutes', 'Skip Percentage'])
+        tot_plays_rank = st.session_state.album_df.loc[st.session_state.album_df['album_name'] == album_name, 'total_plays_rank'].item()
+        tot_mins_rank = st.session_state.album_df.loc[st.session_state.album_df['album_name'] == album_name, 'total_mins_rank'].item()
+        unique_songs_rank = st.session_state.album_df.loc[st.session_state.album_df['album_name'] == album_name, 'unique_tracks_rank'].item()
+        unique_albums_rank = 0
     
     top_songs = full_hist.head(Config().top_n)
+
+    tot_plays_rank = add_suffix(int(tot_plays_rank))
+    tot_mins_rank = add_suffix(int(tot_mins_rank))
+    unique_songs_rank = add_suffix(int(unique_songs_rank))
+    unique_albums_rank = add_suffix(int(unique_albums_rank))
 
     return ArtistAlbumStats(
         artist_name=artist_name,
         album_name=album_name,
         tot_plays=tot_plays,
+        tot_plays_rank=tot_plays_rank,
         tot_mins=tot_mins,
+        tot_mins_rank=tot_mins_rank,
         unique_songs=unique_songs,
+        unique_songs_rank=unique_songs_rank,
         unique_albums=unique_albums,
+        unique_albums_rank=unique_albums_rank,
         first_song_row=first_row,
         last_song_row=last_row,
         peak_month=peak_month,

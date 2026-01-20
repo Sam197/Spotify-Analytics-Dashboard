@@ -5,7 +5,7 @@ from typing import Tuple
 DAYS_OF_WEEK = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday', 3: 'Thursday', 4: 'Friday', 5: 'Saturday', 6: 'Sunday'}
 MONTHS = {1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June',
           7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'}
-DATE_SUFFIX = {1: 'st', 2: 'nd', 3: 'rd', 4: 'th', 5: 'th', 6: 'th', 7: 'th', 8: 'th', 9: 'th', 10: 'th',
+DATE_SUFFIX = {0: 'th', 1: 'st', 2: 'nd', 3: 'rd', 4: 'th', 5: 'th', 6: 'th', 7: 'th', 8: 'th', 9: 'th', 10: 'th',
                11: 'th', 12: 'th', 13: 'th', 14: 'th', 15: 'th', 16: 'th', 17: 'th', 18: 'th', 19: 'th', 20: 'th',
                21: 'st', 22: 'nd', 23: 'rd', 24: 'th', 25: 'th', 26: 'th', 27: 'th', 28: 'th', 29: 'th', 30: 'th',
                31: 'st'}
@@ -25,10 +25,14 @@ class SongStats:
     last_listen: pd.Timestamp
     timespan: int
     tot_plays: int
+    tot_plays_rank: int
     tot_skips: int
     full_plays: int
-    listen_rate: float
+    full_plays_rank: int
+    skip_percentage: float
+    skip_percentage_rank: int
     tot_mins: float
+    tot_mins_rank: int
     avg_plays_per_month: float
     most_plays_in_day: int
     most_plays_in_day_date: pd.Period

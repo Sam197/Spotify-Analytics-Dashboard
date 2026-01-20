@@ -1,5 +1,6 @@
 import streamlit as st
 from analytics.analytics_funcs import MONTHS
+from models import DATE_SUFFIX
 
 def summary_song_markdown(data):
 
@@ -17,12 +18,12 @@ def summary_song_markdown(data):
     ---
 
     #### 📊 Play Statistics
-    | Metric | Value |
-    | :--- | :--- |
-    | **Total Plays** | {data.tot_plays} |
-    | **Full Listens** | {data.full_plays} |
-    | **Skips** | {data.tot_skips} ({100 - data.listen_rate:.1f}% skip rate) |
-    | **Total Time** | {data.tot_mins:.2f} Minutes |
+    | Metric | Value | Overall Rank |
+    | :--- | :--- | :--- |
+    | **Total Plays** | {data.tot_plays} | {data.tot_plays_rank} |
+    | **Full Listens** | {data.full_plays} | {data.full_plays_rank} |
+    | **Skips** | {data.tot_skips} ({data.skip_percentage:.1f}% skip rate) | {data.skip_percentage_rank} |
+    | **Total Time** | {data.tot_mins:.2f} Minutes | {data.tot_mins_rank} |
 
     ---
 

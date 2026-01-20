@@ -41,15 +41,18 @@ class SessionKeys:
 
 TOP_SONG_COLUMN_ORDER = ['spotify_track_uri', 'track_name', 'artist_name', 'album_name',
                 'total_plays', 'plays_no_skips', 'total_mins', 'mean_listen_mins', 'skip_percentage']
-SONG_RANK_METRICS = ['total_plays', 'plays_no_skips', 'total_mins', 'mean_listen_mins', 'skip_percentage']
+SONG_RANK_METRICS_DESC = ['total_plays', 'plays_no_skips', 'total_mins', 'mean_listen_mins']
+SONG_RANK_METRICS_ASEN = ['skip_percentage']
 
 TOP_ARTIST_COLUMN_ORDER = ['master_metadata_album_artist_name', 'total_plays', 'plays_no_skips', 'unique_tracks',
                            'unique_albums', 'total_mins', 'mean_listen_mins', 'skip_percentage']
-ARTIST_RANK_METRICS = ['total_plays', 'plays_no_skips', 'unique_tracks','unique_albums', 'total_mins', 'mean_listen_mins', 'skip_percentage']
+ARTIST_RANK_METRICS_DESC = ['total_plays', 'plays_no_skips', 'unique_tracks','unique_albums', 'total_mins', 'mean_listen_mins']
+ARTIST_RANK_METRICS_ASEN = ['skip_percentage']
 
 TOP_ALBUM_COLUMN_ORDER = ['album_name', 'artist_name', 'unique_tracks',
                 'total_plays', 'plays_no_skips', 'total_mins', 'mean_listen_mins', 'skip_percentage']
-ALBUM_RANK_METRICS = ['unique_tracks', 'total_plays', 'plays_no_skips', 'total_mins', 'mean_listen_mins', 'skip_percentage']
+ALBUM_RANK_METRICS_DESC = ['unique_tracks', 'total_plays', 'plays_no_skips', 'total_mins', 'mean_listen_mins']
+ALBUM_RANK_METRICS_ASEN = ['skip_percentage']
 
 DISPLAY_COLUMN_NAMES_MAP = {'spotify_track_uri': 'Track URI', 'master_metadata_track_name': 'Track Name',
                             'master_metadata_album_artist_name': 'Artist', 'master_metadata_album_album_name': 'Album',

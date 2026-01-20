@@ -53,6 +53,7 @@ def render():
             help="Choose a random Song that you have listened to to look at! Biased towards number of plays"
         ):
             st.session_state.previous_rand = analytics_funcs.random_play(df)
+            artist = album = None
 
     # Handle random selection
     if st.session_state.previous_rand:
