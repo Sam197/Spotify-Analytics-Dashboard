@@ -52,23 +52,21 @@ def summary_artist_album_markdown(data, artist=False, album=False):
     if artist:
         st.markdown(f"""
         #### 📊 Career Statistics
-        | Metric | Value |
-        | :--- | :--- |
-        | **Total Time** | {data.tot_mins:.2f} Minutes |
-        | **Total Plays** | {data.tot_plays} |
-        | **Unique Songs** | {data.unique_songs} |
-        | **Unique Albums** | {data.unique_albums} |
-        | **Loyalty** | Listened to in {data.years_active} different year(s) |
+        | Metric | Value | Overall Rank |
+        | :--- | :--- | :--- |
+        | **Total Time** | {data.tot_mins:.2f} Minutes | {data.tot_mins_rank} |
+        | **Total Plays** | {data.tot_plays} | {data.tot_plays_rank} |
+        | **Unique Songs** | {data.unique_songs} | {data.unique_songs_rank} |
+        | **Unique Albums** | {data.unique_albums} | {data.unique_albums_rank} |
         """)
     else:
         st.markdown(f"""
         #### 📊 Career Statistics
-        | Metric | Value |
-        | :--- | :--- |
-        | **Total Time** | {data.tot_mins:.2f} Minutes |
-        | **Total Plays** | {data.tot_plays} |
-        | **Unique Songs** | {data.unique_songs} |
-        | **Loyalty** | Listened to in {data.years_active} different year(s) |
+        | Metric | Value | Overall Rank |
+        | :--- | :--- | :--- |
+        | **Total Time** | {data.tot_mins:.2f} Minutes | {data.tot_mins_rank} |
+        | **Total Plays** | {data.tot_plays} | {data.tot_plays_rank} |
+        | **Unique Songs** | {data.unique_songs} | {data.unique_songs_rank} |
         """)
     st.markdown(f"""
     ---
@@ -91,6 +89,7 @@ def summary_artist_album_markdown(data, artist=False, album=False):
     st.markdown(f"""
     * **Peak Month:** {MONTHS[data.peak_month.month]} {data.peak_month.year} ({data.peak_month_count} plays)
 
+    * **Loyalty** Listened to in {data.years_active} different year(s)
     ---
     #### 🎵 Top Songs
     """

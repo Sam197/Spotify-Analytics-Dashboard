@@ -58,7 +58,7 @@ def render():
         # Track pie chart
         st.plotly_chart(
             plots.make_pie_chart_track(album_sum_stats.full_hist, album=True),
-            use_container_width=True
+            width='stretch'
         )
         
         # Listening patterns over time

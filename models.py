@@ -44,9 +44,13 @@ class ArtistAlbumStats:
     artist_name: str
     album_name: str
     tot_plays: int
+    tot_plays_rank: int
     tot_mins: float
+    tot_mins_rank: int
     unique_songs: int
+    unique_songs_rank: int
     unique_albums: int
+    unique_albums_rank: int
     first_song_row: pd.Series
     last_song_row: pd.Series
     peak_month: pd.Period
@@ -57,28 +61,6 @@ class ArtistAlbumStats:
     most_plays_in_day: int
     most_plays_in_day_date: pd.Period
     avg_plays_per_month: float
-
-@dataclass
-class ArtistStats:
-    artist_name: str
-    tot_plays: int
-    tot_hours: float
-    unique_songs: int
-    unique_albums: int
-    first_song_row: pd.Series
-    last_song_row: pd.Series
-    peak_month: pd.Period
-    peak_month_count: int
-    years_active: int
-    top_songs: pd.DataFrame
-    full_hist: pd.DataFrame
-    most_plays_in_day: int
-    most_plays_in_day_date: pd.Period
-    avg_plays_per_month: float
-
-@dataclass
-class AlbumStats(ArtistStats):
-    album_name: str
 
 @dataclass
 class BasicStats:

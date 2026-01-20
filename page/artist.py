@@ -56,11 +56,12 @@ def render():
             # Track pie chart
             st.plotly_chart(
                 plots.make_pie_chart_track(artist_sum_stats.full_hist),
-                use_container_width=True
+                width='stretch'
             )
             
             # Albums for this artist
             top_albums_for_artist = analytics_funcs.top_albums(artist_hist, single=True)
+            print(top_albums_for_artist)
             top_albums_for_artist.drop(columns=['artist_name'], inplace=True)
             
             st.subheader("Top Albums for this Artist")
@@ -75,7 +76,7 @@ def render():
             # Album pie chart
             st.plotly_chart(
                 plots.make_pie_chart_album(top_albums_for_artist),
-                use_container_width=True
+                width='stretch'
             )
             
             # Listening patterns over time
