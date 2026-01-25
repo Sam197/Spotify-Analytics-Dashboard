@@ -12,5 +12,7 @@ Here, GDPR comes to the rescue. Under GDPR laws, you can request your 'Extended 
 
 Unlike other analytic platforms, this dashboard does not connect to your Spotify account, to use it you will **need** a copy of your 'Extended Streaming History' from Spotify, you can request it [here](https://www.spotify.com/uk/account/privacy/). Then simply upload all files with names like Streaming_History_Audio_2018-2019_0.json. Once you have uploaded your data, you will be able to download your data as a .parquet files for faster uploads and inital reading, at the expense of human readabilty.
 
+Once you have your data, head on over to the app by clicking [here](https://spotifyanalyticsdashboard.streamlit.app/), upload your data and get started! Click [here](https://dashboard-test-branch.streamlit.app/) to go to the testing verison of the app where new features are tested.
+
 ---
 Hope you find it fun and possibly find some insightful statistics!
